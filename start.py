@@ -38,7 +38,7 @@ class Page:
     def render(self, pygame_screen):
         pass
 
-
+# Defines the class called PageManager
 class PageManager:
     def __init__(self, initial_page):
         self.current_page = initial_page
@@ -781,10 +781,13 @@ class OpenTankSizingPage1(Page):
         self.back_rect = [
             pygame.Rect(button_start_x / 2 - button_width / 2 - 200, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
         ]
+        self.next_rect = [
+            pygame.Rect(button_start_x / 2 + button_width / 2 + 900, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
 
-        self.back_text = [
-            "Back"
         ]
+
+        self.back_text = ["Back"]
+        self.next_text = ["Next"]
         self.input_labels = ["In Flow (m3/s):", "Out Flow (m3/s):", "Retention Time (s):", "L/D (m/m):"]
         self.input_values = ["", "", "", ""]
         self.input_rects = [
@@ -801,6 +804,7 @@ class OpenTankSizingPage1(Page):
             pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height)
         ]
         self.in_back = False
+        self.in_next = False
         self.manager = page_manager
         self.active_input = None
     def handle_event(self, event):
@@ -821,6 +825,9 @@ class OpenTankSizingPage1(Page):
             if self.back_rect[0].collidepoint(event.pos):
                 self.in_back = True
                 print("Back")
+            elif self.next_rect[0].collidepoint(event.pos):
+                self.in_next = True
+                print("Next")
 
         elif event.type == pygame.KEYDOWN and self.active_input is not None:
             # If an input field is active and a key is pressed, update the input value accordingly
@@ -837,6 +844,8 @@ class OpenTankSizingPage1(Page):
                 
         if self.in_back:
             self.manager.go_to(VesselsPage())
+        elif self.in_next:
+            self.manager.go_to(OpenTankSizingPage2())
     def update_input_field(self):
         # Update the input text surface
         input_surface = font.render(self.input_values[self.active_input], True, BLACK)
@@ -920,7 +929,7 @@ class OpenTankSizingPage1(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         pygame_screen.fill(WHITE)
-        text = font.render("Storage Tank: Assumed Cylindrical", True, BLACK)
+        text = font.render("Storage Tank Sizing Based off Retention Time: Assumed Cylindrical", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         pygame_screen.blit(text, text_rect)
 
@@ -997,6 +1006,12 @@ class OpenTankSizingPage1(Page):
         back_button_rect = back_button.get_rect()
         back_button_rect.center = self.back_rect[0].center
         pygame_screen.blit(back_button, back_button_rect)
+        # Draw the next button
+        pygame.draw.rect(pygame_screen, GRAY, self.next_rect[0])
+        next_button = font.render(self.next_text[0], True, BLACK)
+        next_button_rect = next_button.get_rect()
+        next_button_rect.center = self.next_rect[0].center
+        pygame_screen.blit(next_button, next_button_rect)
 
         # Update the active input field, if any
         if self.active_input is not None:
@@ -1029,15 +1044,15 @@ class OpenTankSizingPage2(Page):
         self.back_text = [
             "Back"
         ]
-        self.input_labels = ["Outside Temp (C):", "Out Flow (m3/s):", "Retention Time (s):", "L/D (m/m):"]
-        self.input_values = ["", "", "", ""]
+        self.input_labels = ["Outside Temp (C):","Outside Sun [lux]","Wind Speed (m/s)", "Liq Temp (C)", "Media CAS:", "Surf. Vel. (m/s):","Insul Conductivity (W/mK):"]
+        self.input_values = ["", "", "", "","","",""]
         self.input_rects = [
             pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y, button_width, button_height),
             pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + button_height + button_padding, button_width, button_height),
             pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height),
             pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 3 * button_height + 3 * button_padding, button_width, button_height)
         ]
-        self.output_labels = ["Req. Volume (m³):", "Length (m):", "Diameter (m):"]
+        self.output_labels = ["Insul. Thickness [mm]:", "Heat Loss (kW):", "Heat Loss (Btu/hr):"]
         self.output_values = ["", "", ""]
         self.output_rects = [
             pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y, button_width, button_height),
@@ -1072,6 +1087,7 @@ class OpenTankSizingPage2(Page):
                 # If the Enter key is pressed, submit the input value and keep the value in the input field
                 print("Input value for", self.input_labels[self.active_input], "is", self.input_values[self.active_input])
                 self.active_input = None
+                self.update_output_fields()
             elif event.key == pygame.K_BACKSPACE:
                 # If the Backspace key is pressed, remove the last character from the input value
                 self.input_values[self.active_input] = self.input_values[self.active_input][:-1]
@@ -1080,7 +1096,7 @@ class OpenTankSizingPage2(Page):
                 self.input_values[self.active_input] += event.unicode
                 
         if self.in_back:
-            self.manager.go_to(VesselsPage())
+            self.manager.go_to(OpenTankSizingPage1())
     def update_input_field(self):
         # Update the input text surface
         input_surface = font.render(self.input_values[self.active_input], True, BLACK)
@@ -1088,18 +1104,41 @@ class OpenTankSizingPage2(Page):
         screen.blit(input_surface, (self.input_rects[self.active_input].x + 5, self.input_rects[self.active_input].y + 5))
         pygame.draw.rect(screen, BLACK, self.input_rects[self.active_input], 2)
     def update_output_fields(self):
+        insulation_thickness_mm, heat_loss_kw, heat_loss_btuh = self.calculate_insulation_thickness_and_heat_loss()
+        
+        if isinstance(insulation_thickness_mm, (int, float)):
+            self.output_values[0] = f"{insulation_thickness_mm:.2f}"
+        else:
+            self.output_values[0] = ""
+            
+        if isinstance(heat_loss_kw, (int, float)):
+            self.output_values[1] = f"{heat_loss_kw:.2f}"
+        else:
+            self.output_values[1] = ""
+            
+        if isinstance(heat_loss_btuh, (int, float)):
+            self.output_values[2] = f"{heat_loss_btuh:.2f}"
+        else:
+            self.output_values[2] = ""
+
+    def calculate_insulation_thickness_and_heat_loss(self):
         try:
-            retention_time = float(self.input_values[2])
-            out_flow = float(self.input_values[1])
-            ld_ratio = float(self.input_values[3])
+            T_outside = float(self.input_values[0])
+            lux = float(self.input_values[1])
+            wind_speed = float(self.input_values[2])
+            T_liquid = float(self.input_values[3])
+            media_CAS = float(self.input_values[4])
+            surf_vel = float(self.input_values[5])
+            insul_conductivity = float(self.input_values[6])
 
-            req_volume = retention_time * out_flow
-            diameter = (4 * req_volume / (math.pi * ld_ratio))**(1/3)
-            length = diameter * ld_ratio
+            # Add your specific formulas for calculating insulation thickness and heat loss
+            insulation_thickness = (T_liquid - T_outside) / (wind_speed * insul_conductivity)
+            heat_loss_kw = insul_conductivity * (T_liquid - T_outside) * surf_vel / insulation_thickness
+            heat_loss_btuh = heat_loss_kw * 3412.142
 
-            self.output_values = [f"{req_volume:.2f}", f"{length:.2f}", f"{diameter:.2f}"]
+            return insulation_thickness * 1000, heat_loss_kw, heat_loss_btuh
         except ValueError:
-            self.output_values = ["", "", ""]
+            return "", "", ""
 
     def draw_storage_tank(self,screen, x, y, width, height, border_width):
         """
@@ -1984,8 +2023,8 @@ class EditCapitalCostEstimationParametersPage(Page):
 class ProcessSafetyPage(Page):
     def __init__(self,page_manager = None):
         self.menu_rects = [
-        pygame.Rect(button_start_x, button_start_y, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height),
+        pygame.Rect(button_start_x-(button_width)//8, button_start_y, button_width*1.25, button_height),
+        pygame.Rect(button_start_x-(button_width)//4, button_start_y + button_height + button_padding, button_width*1.5, button_height),
         pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 2, button_width, button_height),
         pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 3, button_width, button_height)
     ]
@@ -2157,8 +2196,86 @@ class Button:
 
     def is_clicked(self, mouse_pos):
         return self.rect.collidepoint(mouse_pos)
+class InputFieldWithUnits:
+    def __init__(self, font, font_name, label='', max_length=None, var_name='', units=''):
+        self.label = label
+        self.var_name = var_name
+        self.units = units
+        self.max_length = max_length
+        self.font = font
+        self.bold_font = pygame.font.SysFont(font_name, font.get_height(), bold=True)  # Create a bold font using font_name
+        self.rect = pygame.Rect(0, 0, 0, 60)
+        self.active = False
+        self.update_surface()
+
+    def render(self, surface, pos):
+        self.update_surface()
+        self.rect = self.surface.get_rect(center=pos)
+        surface.blit(self.surface, self.rect)
 
 
+    def get_text(self):
+        return self.label
+
+    def add_character(self, char):
+        if self.max_length is not None and len(self.label) >= self.max_length:
+            return
+        self.label += char
+        self.update_surface()
+
+    def remove_character(self):
+        self.label = self.label[:-1]
+        self.update_surface()
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos):
+            self.active = True
+            self.label = ""
+            self.update_surface()
+        elif event.type == pygame.KEYDOWN and self.active:
+            if event.key == pygame.K_RETURN:
+                self.active = False
+            elif event.key == pygame.K_BACKSPACE:
+                self.remove_character()
+            elif event.unicode.isprintable():
+                self.add_character(event.unicode)
+
+    def update_surface(self):
+        fixed_surface_width = 300
+
+        # Use the bold_font for rendering the variable name
+        var_name_surf = self.bold_font.render(self.var_name, True, BLACK)
+        self.surface = pygame.Surface((fixed_surface_width, 60), pygame.SRCALPHA)
+
+        fixed_surface_width = 500
+        box_start_x = 150
+        var_name_surf = self.font.render(self.var_name, True, BLACK)
+
+        units_numerator, units_denominator = self.units.split('/')
+        units_numerator_surf = self.font.render(units_numerator, True, BLACK)
+        units_denominator_surf = self.font.render(units_denominator, True, BLACK)
+
+        self.surface = pygame.Surface((fixed_surface_width, 60), pygame.SRCALPHA)
+
+        # Clear the surface with a transparent color
+        self.surface.fill((0, 0, 0, 0))
+
+        pygame.draw.rect(self.surface, BLACK, (box_start_x, 20, int(125 * 1.50), 40), 2)
+        label_surf = self.font.render(self.label, True, BLACK)
+        self.surface.blit(label_surf, (box_start_x + 5, 25))
+
+        self.surface.blit(var_name_surf, (fixed_surface_width // 2 - var_name_surf.get_width() // 2, -5))
+
+        units_x_offset = -80  # Change this value to move the units label closer or farther from the input box
+        max_unit_width = max(units_numerator_surf.get_width(), units_denominator_surf.get_width())
+        units_x = fixed_surface_width - max_unit_width - 10 + units_x_offset
+
+        current_unit_width = max(units_numerator_surf.get_width(), units_denominator_surf.get_width())
+        additional_offset = max_unit_width - current_unit_width
+
+        self.surface.blit(units_numerator_surf, (units_x + additional_offset // 2 + (max_unit_width - units_numerator_surf.get_width()) // 2, 5))
+        pygame.draw.line(self.surface, BLACK, (units_x - 5 + additional_offset // 2, 30), (units_x + max_unit_width + 5 + additional_offset // 2, 30), 1)
+        self.surface.blit(units_denominator_surf, (units_x + additional_offset // 2, 35))
 class InputField:
     def __init__(self, font, label='', max_length=None):
         self.label = label
@@ -2202,6 +2319,34 @@ class InputField:
         self.rect.center = pos
         self.update_surface()
         surface.blit(self.surface, self.rect)
+
+    def render_value(self, surface, rect):
+        pygame.draw.rect(surface, WHITE, rect)
+        pygame.draw.rect(surface, GRAY, rect, 2)
+
+        # Split the label into label and unit
+        label, unit = self.label.rsplit(' ', 1)
+
+        # Draw the input field label on the right side of the input box
+        label_surface = font.render(label, True, BLACK)
+        label_rect = label_surface.get_rect()
+        label_rect.right = rect.left - 10  # Move the label 10 pixels to the left of the input box
+        label_rect.centery = rect.centery
+        surface.blit(label_surface, label_rect)
+
+        # Draw the input field text
+        text_surface = font.render(self.label, True, BLACK)
+        text_rect = text_surface.get_rect()
+        text_rect.centerx = rect.centerx
+        text_rect.centery = rect.centery
+        surface.blit(text_surface, text_rect)
+
+        # Draw the input field unit on the left side of the input box
+        unit_surface = font.render(unit, True, BLACK)
+        unit_rect = unit_surface.get_rect()
+        unit_rect.left = rect.right + 10  # Move the unit 10 pixels to the right of the input box
+        unit_rect.centery = rect.centery
+        surface.blit(unit_surface, unit_rect)
 class AddChemicalPage(Page):
     def __init__(self, page_manager = None):
         super().__init__()
@@ -3011,7 +3156,6 @@ class FlowsheetRenderer:
             self.draw_arrow_with_label(screen, stream_pos, stream_size, stream.name)
 
         # You can also draw other elements like labels, grid, or background here
-
 # Define the Flowhsheet Class, This is where all the info will be saved
 class Flowsheet:
     def __init__(self, name):
