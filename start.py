@@ -17,6 +17,7 @@ pygame.init()
 WINDOW_SIZE = (1800, 900)
 screen_dimensions = WINDOW_SIZE
 screen_length = WINDOW_SIZE[0]
+screen_width = WINDOW_SIZE[0]
 screen_height = WINDOW_SIZE[1]
 screen = pygame.display.set_mode(WINDOW_SIZE)
 pygame.display.set_caption("Frank's Chemical Process Simulator")
@@ -37,7 +38,6 @@ class Page:
 
     def render(self, pygame_screen):
         pass
-
 # Defines the class called PageManager
 class PageManager:
     def __init__(self, initial_page):
@@ -54,7 +54,6 @@ class PageManager:
 
     def render(self, screen):
         self.current_page.render(screen)
-
 # Defines the Main Menu pages
 class MainMenuPage(Page):
     def __init__(self, page_manager=None):
@@ -175,13 +174,17 @@ class RunFlowsheetSimulation(Page):
         self.filename = filename
         self.flowsheet = Flowsheet("My Flowsheet")
         self.grid = None
+        self.recently_saved = False
         self.paused = False
         self.save_as = False
+        self.go_to_main_menu = False
         self.screen = pygame.display.set_mode(WINDOW_SIZE)
         self.clock = pygame.time.Clock()
         self.paused = False
         self.flowsheet_renderer = FlowsheetRenderer(self.flowsheet)
         self.placing_pump = False
+        self.placing_tank = False
+        self.return_to_main_menu = False  # Add this line
         tab_width = 200
         tab_height = self.screen.get_height()
         self.tab_rect = pygame.Rect(self.screen.get_width() - tab_width, 0, tab_width, tab_height)
@@ -250,8 +253,12 @@ class RunFlowsheetSimulation(Page):
                     if button["rect"].collidepoint(event.pos):
                         if button["type"] == "Centrifugal Pump":
                             self.placing_pump = True
+                        elif button["type"] == "Tank":
+                            self.placing_tank = True
                         else:
                             self.placing_pump = False
+                            self.placing_tank = False
+                        
             elif self.placing_pump:
                 # Place centrifugal pump on the flowsheet
                 pump_rect = pygame.Rect(event.pos[0] - 20, event.pos[1] - 20, 40, 40)
@@ -264,9 +271,11 @@ class RunFlowsheetSimulation(Page):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if self.pause_buttons[0]['rect'].collidepoint(event.pos):
                     # Save Has been clicked
-                    print("Game Saved")
+                    
                     with open(self.filename, 'wb') as f:
                         pickle.dump(self.flowsheet, f)
+                    print("Game Sucessfully Saved")
+                    self.recently_saved = True
                 elif self.pause_buttons[1]['rect'].collidepoint(event.pos):
                     # Save as has been clicked
                     print("Save As")
@@ -277,7 +286,7 @@ class RunFlowsheetSimulation(Page):
                 # Check if the user clicked the "Quit to Main" button
                 elif self.pause_buttons[3]["label"] == "Quit to Main" and self.pause_buttons[3]["rect"].collidepoint(mouse_x, mouse_y):
                     print("Back to Main Menu")
-                    self.page_manager.change_page(MainMenuPage())
+                    self.return_to_main_menu = True  # Update this line
 
                 elif self.pause_buttons[4]['rect'].collidepoint(event.pos):
                     # Quit to desktop has been pressed
@@ -382,7 +391,6 @@ class RunFlowsheetSimulation(Page):
         for i, block_type in enumerate(self.block_types):
             text = self.font.render(block_type.value, True, self.BLACK)
             self.screen.blit(text, (self.menu_rect.x + 10, self.menu_rect.y + 10 + i * 40))
-
     def add_block(self, block_type, x, y):
         # Create block instance based on block_type
         if block_type == BlockType.Tank:
@@ -409,10 +417,8 @@ class RunFlowsheetSimulation(Page):
                 self.renderer.draw_centrifugal_pump(self.screen, block["rect"].center)
             else:
                 pygame.draw.rect(self.screen, self.BLUE, block["rect"])
-                text = self.font.render(block["type"], True, self.BLACK)
+                text = self.font.render(block["instance"].name, True, self.BLACK)  # Update this line to use block's name instead of its type
                 self.screen.blit(text, (block["rect"].x + 10, block["rect"].y + 10))
-
-
     def run(self):
         # Initialize pygame elements
         print("Running RunFlowsheetSimulation...")  # Debugging line
@@ -433,7 +439,6 @@ class RunFlowsheetSimulation(Page):
                 "instance": block_instance,
             }
             self.block_list.append(block)
-
     def render(self, screen):
         self.screen.fill(self.WHITE)
         self.flowsheet_renderer.render(self.screen)
@@ -450,7 +455,26 @@ class RunFlowsheetSimulation(Page):
 
         if self.paused:
             self.draw_pause_menu()
+        def draw_centrifugal_pump(screen, center_pos, radius=20):
+            pygame.draw.circle(screen, BLACK, center_pos, radius, 2)
 
+            start_angle1 = math.pi / 2
+            start_angle2 = 3 * math.pi / 2
+            end_angle = 2 * math.pi
+
+            start_point1 = (int(center_pos[0] + radius * math.cos(start_angle1)),
+                            int(center_pos[1] - radius * math.sin(start_angle1)))
+            start_point2 = (int(center_pos[0] + radius * math.cos(start_angle2)),
+                            int(center_pos[1] - radius * math.sin(start_angle2)))
+            end_point = (int(center_pos[0] + radius * math.cos(end_angle)),
+                        int(center_pos[1] - radius * math.sin(end_angle)))
+
+            pygame.draw.line(screen, BLACK, start_point1, end_point, 2)
+            pygame.draw.line(screen, BLACK, start_point2, end_point, 2)
+        # Draw centrifugal pumps
+        for block in self.flowsheet.blocks:
+            if isinstance(block, CentrifugalPump):
+                draw_centrifugal_pump(screen, block.position)
         pygame.display.update()
 # Define the New flosheet Page
 class NewFlowsheetPage(Page):
@@ -774,6 +798,369 @@ class PressureVesselsPage(Page):
             text = font.render(self.menu_texts[i], True, BLACK)
             text_rect = text.get_rect(center=rect.center)
             pygame_screen.blit(text, text_rect)
+# Define the Pressure Vessels Page for ASME Standards
+class GenericVerticalPressureVesselPageASME(Page):
+    pass
+# Define the Pressure Vessels Page for SIS Standards
+class GenericVerticalPressureVesselsPageSIS(Page):
+    pass
+# Define the Pressure Vessels Page for EN Standards
+class GenericVerticalPressureVesselsPageEN(Page):
+    pass
+# Define the Generic Horizontal Vessels Page
+class GenericHorizontalVesselPage(Page):
+    def __init__(self,page_manager = None):
+        self.menu_rects = [
+        pygame.Rect(button_start_x/2-button_width/2, button_start_y, button_width, button_height),
+        pygame.Rect(button_start_x/2-button_width/2, button_start_y + button_height + button_padding, button_width, button_height),
+        pygame.Rect(button_start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 2, button_width, button_height),
+        pygame.Rect(button_start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 3, button_width, button_height)
+    ]
+        self.menu_texts = [
+        "ASME Code",
+        "SIS Code",
+        "EN Code",
+        "Back"
+    ]
+        self.in_ASME= False
+        self.in_SIS = False
+        self.in_EN = False
+        self.in_back = False
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_ASME = True
+                    elif i == 1:
+                        self.in_SIS = True
+                    elif i == 2:
+                        self.in_EN = True
+                    elif i == 3:
+                        self.in_back = True
+        if self.in_pressure_vessels:
+            self.manager.go_to(PressureVesselsPageASME())
+        elif self.in_open_tanks:
+            self.manager.go_to(PressureVesselsPageSIS())
+        elif self.in_ventilated_tanks:
+            self.manager.go_to(PressureVesselsPageEN())
+        elif self.in_back:
+            self.manager.go_to(PressureVesselsPage())
+# Define the Generic Vertical Vessels Page
+class GenericVerticalVesselPage(Page):
+    def __init__(self) -> None:
+        super().__init__()
+        self.menu_rects = [
+        pygame.Rect(button_start_x/2-button_width/2, button_start_y, button_width, button_height),
+        pygame.Rect(button_start_x/2-button_width/2, button_start_y + button_height + button_padding, button_width, button_height),
+        pygame.Rect(button_start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 2, button_width, button_height),
+        pygame.Rect(button_start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 3, button_width, button_height)
+    ]
+        self.menu_texts = [
+            "ASME Code",
+            "SIS Code",
+            "EN Code",
+            "Back"
+        ]
+        self.in_ASME= False
+        self.in_SIS = False
+        self.in_EN = False
+        self.in_back = False
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_ASME = True
+                    elif i == 1:
+                        self.in_SIS = True
+                    elif i == 2:
+                        self.in_EN = True
+                    elif i == 3:
+                        self.in_back = True
+        if self.in_ASME:
+            self.manager.go_to(GenericVerticalPressureVesselPageASME())
+        elif self.in_SIS:
+            self.manager.go_to(GenericVerticalPressureVesselsPageSIS())
+        elif self.in_EN:
+            self.manager.go_to(GenericVerticalPressureVesselsPageEN())
+        elif self.in_back:
+            self.manager.go_to(PressureVesselsPage())
+    def render(self, screen):
+        screen.fill(WHITE)
+        text = font.render("Vertical Vessels for Different Building Codes", True, BLACK)
+        text_rect = text.get_rect(center=(screen_width / 2, 100))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            screen.blit(text, text_rect)
+# Define the Boiler Pressure Vessels Page
+class BoilerVesselPage(Page):
+    pass
+# Define the Expansion Vessels Page
+class ExpansionVesselPage(Page):
+    def __init__(self, page_manager=None):
+        button_padding = 30
+        self.back_rect = [
+            pygame.Rect(button_start_x / 2 - button_width / 2 - 200, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+        ]
+        self.next_rect = [
+            pygame.Rect(button_start_x / 2 + button_width / 2 + 900, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+
+        ]
+
+        self.back_text = ["Back"]
+        self.next_text = ["Next"]
+        self.input_labels = ["Temp 1 (C):", "Temp 2 (C):", " System Vol (m³):", "CAS nr:"]
+        self.input_values = ["", "", "", ""]
+        self.input_rects = [
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + button_height + button_padding, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 3 * button_height + 3 * button_padding, button_width, button_height)
+        ]
+        self.output_labels = ["Expansion Volume (m³):"]
+        self.output_values = [""]
+        self.output_rects = [
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y, button_width, button_height),
+        ]
+        self.in_back = False
+        self.in_next = False
+        self.manager = page_manager
+        self.active_input = None
+    def handle_event(self, event):
+        if event.type == pygame.QUIT:
+            pygame.quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if the mouse clicked inside any of the input fields
+            clicked_inside_input = False
+            for i, rect in enumerate(self.input_rects):
+                if rect.collidepoint(event.pos):
+                    self.active_input = i
+                    print(self.input_labels[i])
+                    clicked_inside_input = True
+
+            if not clicked_inside_input:
+                self.active_input = None
+
+            if self.back_rect[0].collidepoint(event.pos):
+                self.in_back = True
+                print("Back")
+            elif self.next_rect[0].collidepoint(event.pos):
+                self.in_next = True
+                print("Next")
+
+        elif event.type == pygame.KEYDOWN and self.active_input is not None:
+            # If an input field is active and a key is pressed, update the input value accordingly
+            if event.key == pygame.K_RETURN:
+                # If the Enter key is pressed, submit the input value and keep the value in the input field
+                print("Input value for", self.input_labels[self.active_input], "is", self.input_values[self.active_input])
+                self.active_input = None
+            elif event.key == pygame.K_BACKSPACE:
+                # If the Backspace key is pressed, remove the last character from the input value
+                self.input_values[self.active_input] = self.input_values[self.active_input][:-1]
+            elif event.unicode.isdigit() or event.unicode == '.':  # Allow only numeric input and decimal points
+                # If a character key is pressed, add the character to the input value
+                self.input_values[self.active_input] += event.unicode
+                
+        if self.in_back:
+            self.manager.go_to(VesselsPage())
+        elif self.in_next:
+            self.manager.go_to(VesselsPage())
+    def update_input_field(self):
+        # Update the input text surface
+        input_surface = font.render(self.input_values[self.active_input], True, BLACK)
+        pygame.draw.rect(screen, WHITE, self.input_rects[self.active_input])
+        screen.blit(input_surface, (self.input_rects[self.active_input].x + 5, self.input_rects[self.active_input].y + 5))
+        pygame.draw.rect(screen, BLACK, self.input_rects[self.active_input], 2)
+    def update_output_fields(self):
+        try:
+            temp2 = float(self.input_values[1])
+            temp1 = float(self.input_values[0])
+            system_vol = float(self.input_values[2])
+            cas_nr = (self.input_values[3])
+
+            expansion_vol = (temp2 - temp1) * system_vol * 0.0001
+
+            self.output_values = [f"{expansion_vol:.2f}"]
+        except ValueError:
+            self.output_values = [""]
+
+    def draw_storage_tank(self, screen, x, y, width, height, border_width):
+        # Draw the tank body
+        tank_color = (255, 255, 255)  # White
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y, width, height // 2))
+        # Draw the Liquid in the tank
+        tank_color = (0, 0, 255)  # Blue
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 2))
+        # Draw the expansion liquid in the tank
+        tank_color = (173, 216, 230)  # Light Blue
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 4))
+        # Draw the tank border
+        tank_border_color = (0, 0, 0)  # Black
+        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)
+
+        
+    def draw_pipe_with_double_arrow(self,screen, start_pos, end_pos, label, label_above=True):
+        # Draw the line
+        pygame.draw.line(screen, BLACK, start_pos, end_pos, 2)
+
+        # Calculate the arrowhead points
+        arrow_length = 5
+        angle = math.atan2(end_pos[1] - start_pos[1], end_pos[0] - start_pos[0])
+        arrow_angle = math.radians(30)
+
+        def draw_arrowhead(end_pos, reverse=False):
+            if reverse:
+                angle_adjusted = angle + math.pi
+            else:
+                angle_adjusted = angle
+
+            point_a = (end_pos[0] - arrow_length * math.cos(angle_adjusted + arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted + arrow_angle))
+            point_b = (end_pos[0] - arrow_length * math.cos(angle_adjusted - arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted - arrow_angle))
+            pygame.draw.polygon(screen, BLACK, [end_pos, point_a, point_b], 0)
+
+        # Draw arrowheads at both ends
+        draw_arrowhead(end_pos)
+        draw_arrowhead(start_pos, reverse=True)
+
+        # Draw label
+        font = pygame.font.Font(None, 24)
+        text = font.render(label, True, BLACK)
+        text_center_x = (start_pos[0] + end_pos[0]) // 2
+        text_center_y = (start_pos[1] + end_pos[1]) // 2
+
+        # Calculate label offset
+        label_offset = 15
+        offset_x = label_offset * math.sin(angle)
+        offset_y = -label_offset * math.cos(angle)
+
+        if not label_above:
+            offset_x = -offset_x
+            offset_y = -offset_y
+
+        text_rect = text.get_rect(center=(text_center_x + offset_x, text_center_y + offset_y))
+
+        # Rotate text
+        rotated_text = pygame.transform.rotate(text, math.degrees(-angle))
+        rotated_text_rect = rotated_text.get_rect(center=text_rect.center)
+
+        screen.blit(rotated_text, rotated_text_rect)
+
+    # Renders The Screen
+    def render(self, pygame_screen):
+        # Draw the main menu
+        pygame_screen.fill(WHITE)
+        text = font.render("Fluid Expansion Volume", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        pygame_screen.blit(text, text_rect)
+
+        # Draw the storage tank schematic
+        tank_width = 300
+        tank_height = 500
+        border_width = 5
+        tank_x = screen_length // 2 - tank_width//2
+        tank_y = screen_height // 2 - tank_height//2
+
+        self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x-tank_width/2+100,tank_y+tank_height//2),(tank_x-tank_width/2+100,tank_y+tank_height),"V2")
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x-tank_width/2+50,tank_y+tank_height//2 + tank_height//4),(tank_x-tank_width/2+50,tank_y+tank_height),"V1")
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x,tank_y+100),(tank_x+tank_width,tank_y+100),"D")        
+        self.update_output_fields()
+        # Draw the input field rectangle
+        for i, rect in enumerate(self.input_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.input_labels[i].rsplit(' ', 1)
+
+            # Draw the input field label on the right side of the input box
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 10  # Move the label 10 pixels to the left of the input box
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the input field text
+            text_surface = font.render(self.input_values[i], True, BLACK)
+            text_rect = text_surface.get_rect()
+            text_rect.centerx = rect.centerx
+            text_rect.centery = rect.centery
+            pygame_screen.blit(text_surface, text_rect)
+
+            # Draw the input field unit on the left side of the input box
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 10  # Move the unit 10 pixels to the right of the input box
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the output field rectangles
+        for i, rect in enumerate(self.output_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.output_labels[i].rsplit(' ', 1)
+
+            # Draw the output field label
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 5  # Adjust the position
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the output field value
+            value_surface = font.render(self.output_values[i], True, BLACK)
+            value_rect = value_surface.get_rect()
+            value_rect.centerx = rect.centerx
+            value_rect.centery = rect.centery
+            pygame_screen.blit(value_surface, value_rect)
+
+            # Draw the output field unit
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 5  # Adjust the position
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the back button
+        pygame.draw.rect(pygame_screen, GRAY, self.back_rect[0])
+        back_button = font.render(self.back_text[0], True, BLACK)
+        back_button_rect = back_button.get_rect()
+        back_button_rect.center = self.back_rect[0].center
+        pygame_screen.blit(back_button, back_button_rect)
+        # Draw the next button
+        pygame.draw.rect(pygame_screen, GRAY, self.next_rect[0])
+        next_button = font.render(self.next_text[0], True, BLACK)
+        next_button_rect = next_button.get_rect()
+        next_button_rect.center = self.next_rect[0].center
+        pygame_screen.blit(next_button, next_button_rect)
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
+        if self.in_back:
+            self.manager.go_to(VesselsPage())
+
+        # Draw the back button
+        pygame.draw.rect(pygame_screen, GRAY, self.back_rect[0])
+        back_button = font.render(self.back_text[0], True, BLACK)
+        back_button_rect = back_button.get_rect()
+        back_button_rect.center = self.back_rect[0].center
+        pygame_screen.blit(back_button, back_button_rect)
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
 # Define the Open Tanks Sizing Page 1
 class OpenTankSizingPage1(Page):
     def __init__(self, page_manager=None):
@@ -1266,7 +1653,263 @@ class OpenTankSizingPage2(Page):
         pygame.display.update()
 # Define the Ventilated Tanks Page
 class VentilatedTanksPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+        button_padding = 30
+        self.back_rect = [
+            pygame.Rect(button_start_x / 2 - button_width / 2 - 200, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+        ]
+        self.next_rect = [
+            pygame.Rect(button_start_x / 2 + button_width / 2 + 900, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+
+        ]
+
+        self.back_text = ["Back"]
+        self.next_text = ["Next"]
+        self.input_labels = ["In Flow (m3/s):", "Out Flow (m3/s):", "Retention Time (s):", "L/D (m/m):"]
+        self.input_values = ["", "", "", ""]
+        self.input_rects = [
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + button_height + button_padding, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 3 * button_height + 3 * button_padding, button_width, button_height)
+        ]
+        self.output_labels = ["Req. Volume (m³):", "Length (m):", "Diameter (m):"]
+        self.output_values = ["", "", ""]
+        self.output_rects = [
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y, button_width, button_height),
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y + button_height + button_padding, button_width, button_height),
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height)
+        ]
+        self.in_back = False
+        self.in_next = False
+        self.manager = page_manager
+        self.active_input = None
+    def handle_event(self, event):
+        if event.type == pygame.QUIT:
+            pygame.quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if the mouse clicked inside any of the input fields
+            clicked_inside_input = False
+            for i, rect in enumerate(self.input_rects):
+                if rect.collidepoint(event.pos):
+                    self.active_input = i
+                    print(self.input_labels[i])
+                    clicked_inside_input = True
+
+            if not clicked_inside_input:
+                self.active_input = None
+
+            if self.back_rect[0].collidepoint(event.pos):
+                self.in_back = True
+                print("Back")
+            elif self.next_rect[0].collidepoint(event.pos):
+                self.in_next = True
+                print("Next")
+
+        elif event.type == pygame.KEYDOWN and self.active_input is not None:
+            # If an input field is active and a key is pressed, update the input value accordingly
+            if event.key == pygame.K_RETURN:
+                # If the Enter key is pressed, submit the input value and keep the value in the input field
+                print("Input value for", self.input_labels[self.active_input], "is", self.input_values[self.active_input])
+                self.active_input = None
+            elif event.key == pygame.K_BACKSPACE:
+                # If the Backspace key is pressed, remove the last character from the input value
+                self.input_values[self.active_input] = self.input_values[self.active_input][:-1]
+            elif event.unicode.isdigit() or event.unicode == '.':  # Allow only numeric input and decimal points
+                # If a character key is pressed, add the character to the input value
+                self.input_values[self.active_input] += event.unicode
+                
+        if self.in_back:
+            self.manager.go_to(VesselsPage())
+        elif self.in_next:
+            self.manager.go_to(OpenTankSizingPage2())
+    def update_input_field(self):
+        # Update the input text surface
+        input_surface = font.render(self.input_values[self.active_input], True, BLACK)
+        pygame.draw.rect(screen, WHITE, self.input_rects[self.active_input])
+        screen.blit(input_surface, (self.input_rects[self.active_input].x + 5, self.input_rects[self.active_input].y + 5))
+        pygame.draw.rect(screen, BLACK, self.input_rects[self.active_input], 2)
+    def update_output_fields(self):
+        try:
+            retention_time = float(self.input_values[2])
+            out_flow = float(self.input_values[1])
+            ld_ratio = float(self.input_values[3])
+
+            req_volume = retention_time * out_flow
+            diameter = (1/3)*(4 * req_volume*9 / (math.pi))**(1/3)
+            length = diameter * ld_ratio
+
+            self.output_values = [f"{req_volume:.2f}", f"{length:.2f}", f"{diameter:.2f}"]
+        except ValueError:
+            self.output_values = ["", "", ""]
+
+    def draw_storage_tank(self, screen, x, y, width, height, border_width):
+        # Draw the tank body
+        tank_color = (255, 255, 255)  # White
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y, width, height // 2))
+        # Draw the Liquid in the tank
+        tank_color = (0, 0, 255)  # Blue
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 2))
+        tank_border_color = (0, 0, 0)  # Black
+        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)
+
+        
+    def draw_pipe_with_double_arrow(self,screen, start_pos, end_pos, label, label_above=True):
+        # Draw the line
+        pygame.draw.line(screen, BLACK, start_pos, end_pos, 2)
+
+        # Calculate the arrowhead points
+        arrow_length = 10
+        angle = math.atan2(end_pos[1] - start_pos[1], end_pos[0] - start_pos[0])
+        arrow_angle = math.radians(30)
+
+        def draw_arrowhead(end_pos, reverse=False):
+            if reverse:
+                angle_adjusted = angle + math.pi
+            else:
+                angle_adjusted = angle
+
+            point_a = (end_pos[0] - arrow_length * math.cos(angle_adjusted + arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted + arrow_angle))
+            point_b = (end_pos[0] - arrow_length * math.cos(angle_adjusted - arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted - arrow_angle))
+            pygame.draw.polygon(screen, BLACK, [end_pos, point_a, point_b], 0)
+
+        # Draw arrowheads at both ends
+        draw_arrowhead(end_pos)
+        draw_arrowhead(start_pos, reverse=True)
+
+        # Draw label
+        font = pygame.font.Font(None, 24)
+        text = font.render(label, True, BLACK)
+        text_center_x = (start_pos[0] + end_pos[0]) // 2
+        text_center_y = (start_pos[1] + end_pos[1]) // 2
+
+        # Calculate label offset
+        label_offset = 15
+        offset_x = label_offset * math.sin(angle)
+        offset_y = -label_offset * math.cos(angle)
+
+        if not label_above:
+            offset_x = -offset_x
+            offset_y = -offset_y
+
+        text_rect = text.get_rect(center=(text_center_x + offset_x, text_center_y + offset_y))
+
+        # Rotate text
+        rotated_text = pygame.transform.rotate(text, math.degrees(-angle))
+        rotated_text_rect = rotated_text.get_rect(center=text_rect.center)
+
+        screen.blit(rotated_text, rotated_text_rect)
+
+    # Renders The Screen
+    def render(self, pygame_screen):
+        # Draw the main menu
+        pygame_screen.fill(WHITE)
+        text = font.render("Storage Tank Sizing Based off Retention Time: Assumed Cylindrical", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        pygame_screen.blit(text, text_rect)
+
+        # Draw the storage tank schematic
+        tank_width = 300
+        tank_height = 500
+        border_width = 5
+        tank_x = screen_length // 2 - tank_width//2
+        tank_y = screen_height // 2 - tank_height//2
+
+        self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x-tank_width/2+100,tank_y+tank_height),(tank_x-tank_width/2+100,tank_y),"L")
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x,tank_y+100),(tank_x+tank_width,tank_y+100),"D")        
+        self.update_output_fields()
+        # Draw the input field rectangle
+        for i, rect in enumerate(self.input_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.input_labels[i].rsplit(' ', 1)
+
+            # Draw the input field label on the right side of the input box
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 10  # Move the label 10 pixels to the left of the input box
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the input field text
+            text_surface = font.render(self.input_values[i], True, BLACK)
+            text_rect = text_surface.get_rect()
+            text_rect.centerx = rect.centerx
+            text_rect.centery = rect.centery
+            pygame_screen.blit(text_surface, text_rect)
+
+            # Draw the input field unit on the left side of the input box
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 10  # Move the unit 10 pixels to the right of the input box
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the output field rectangles
+        for i, rect in enumerate(self.output_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.output_labels[i].rsplit(' ', 1)
+
+            # Draw the output field label
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 5  # Adjust the position
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the output field value
+            value_surface = font.render(self.output_values[i], True, BLACK)
+            value_rect = value_surface.get_rect()
+            value_rect.centerx = rect.centerx
+            value_rect.centery = rect.centery
+            pygame_screen.blit(value_surface, value_rect)
+
+            # Draw the output field unit
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 5  # Adjust the position
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the back button
+        pygame.draw.rect(pygame_screen, GRAY, self.back_rect[0])
+        back_button = font.render(self.back_text[0], True, BLACK)
+        back_button_rect = back_button.get_rect()
+        back_button_rect.center = self.back_rect[0].center
+        pygame_screen.blit(back_button, back_button_rect)
+        # Draw the next button
+        pygame.draw.rect(pygame_screen, GRAY, self.next_rect[0])
+        next_button = font.render(self.next_text[0], True, BLACK)
+        next_button_rect = next_button.get_rect()
+        next_button_rect.center = self.next_rect[0].center
+        pygame_screen.blit(next_button, next_button_rect)
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
+        if self.in_back:
+            self.manager.go_to(VesselsPage())
+
+        # Draw the back button
+        pygame.draw.rect(pygame_screen, GRAY, self.back_rect[0])
+        back_button = font.render(self.back_text[0], True, BLACK)
+        back_button_rect = back_button.get_rect()
+        back_button_rect.center = self.back_rect[0].center
+        pygame_screen.blit(back_button, back_button_rect)
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
 # Define Heat Exchanger Page
 class HeatExchangerPage(Page):
     def __init__(self,page_manager = None):
@@ -1334,7 +1977,263 @@ class HeatExchangerPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define Shell and Tube Hex Page
 class ShellTubeHexPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+        button_padding = 30
+        self.back_rect = [
+            pygame.Rect(button_start_x / 2 - button_width / 2 - 200, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+        ]
+        self.next_rect = [
+            pygame.Rect(button_start_x / 2 + button_width / 2 + 900, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+
+        ]
+
+        self.back_text = ["Back"]
+        self.next_text = ["Next"]
+        self.input_labels = ["In Flow (m3/s):", "Out Flow (m3/s):", "Retention Time (s):", "L/D (m/m):"]
+        self.input_values = ["", "", "", ""]
+        self.input_rects = [
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + button_height + button_padding, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 3 * button_height + 3 * button_padding, button_width, button_height)
+        ]
+        self.output_labels = ["Req. Volume (m³):", "Length (m):", "Diameter (m):"]
+        self.output_values = ["", "", ""]
+        self.output_rects = [
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y, button_width, button_height),
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y + button_height + button_padding, button_width, button_height),
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height)
+        ]
+        self.in_back = False
+        self.in_next = False
+        self.manager = page_manager
+        self.active_input = None
+    def handle_event(self, event):
+        if event.type == pygame.QUIT:
+            pygame.quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if the mouse clicked inside any of the input fields
+            clicked_inside_input = False
+            for i, rect in enumerate(self.input_rects):
+                if rect.collidepoint(event.pos):
+                    self.active_input = i
+                    print(self.input_labels[i])
+                    clicked_inside_input = True
+
+            if not clicked_inside_input:
+                self.active_input = None
+
+            if self.back_rect[0].collidepoint(event.pos):
+                self.in_back = True
+                print("Back")
+            elif self.next_rect[0].collidepoint(event.pos):
+                self.in_next = True
+                print("Next")
+
+        elif event.type == pygame.KEYDOWN and self.active_input is not None:
+            # If an input field is active and a key is pressed, update the input value accordingly
+            if event.key == pygame.K_RETURN:
+                # If the Enter key is pressed, submit the input value and keep the value in the input field
+                print("Input value for", self.input_labels[self.active_input], "is", self.input_values[self.active_input])
+                self.active_input = None
+            elif event.key == pygame.K_BACKSPACE:
+                # If the Backspace key is pressed, remove the last character from the input value
+                self.input_values[self.active_input] = self.input_values[self.active_input][:-1]
+            elif event.unicode.isdigit() or event.unicode == '.':  # Allow only numeric input and decimal points
+                # If a character key is pressed, add the character to the input value
+                self.input_values[self.active_input] += event.unicode
+                
+        if self.in_back:
+            self.manager.go_to(VesselsPage())
+        elif self.in_next:
+            self.manager.go_to(OpenTankSizingPage2())
+    def update_input_field(self):
+        # Update the input text surface
+        input_surface = font.render(self.input_values[self.active_input], True, BLACK)
+        pygame.draw.rect(screen, WHITE, self.input_rects[self.active_input])
+        screen.blit(input_surface, (self.input_rects[self.active_input].x + 5, self.input_rects[self.active_input].y + 5))
+        pygame.draw.rect(screen, BLACK, self.input_rects[self.active_input], 2)
+    def update_output_fields(self):
+        try:
+            retention_time = float(self.input_values[2])
+            out_flow = float(self.input_values[1])
+            ld_ratio = float(self.input_values[3])
+
+            req_volume = retention_time * out_flow
+            diameter = (1/3)*(4 * req_volume*9 / (math.pi))**(1/3)
+            length = diameter * ld_ratio
+
+            self.output_values = [f"{req_volume:.2f}", f"{length:.2f}", f"{diameter:.2f}"]
+        except ValueError:
+            self.output_values = ["", "", ""]
+
+    def draw_storage_tank(self, screen, x, y, width, height, border_width):
+        # Draw the tank body
+        tank_color = (255, 255, 255)  # White
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y, width, height // 2))
+        # Draw the Liquid in the tank
+        tank_color = (0, 0, 255)  # Blue
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 2))
+        tank_border_color = (0, 0, 0)  # Black
+        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)
+
+        
+    def draw_pipe_with_double_arrow(self,screen, start_pos, end_pos, label, label_above=True):
+        # Draw the line
+        pygame.draw.line(screen, BLACK, start_pos, end_pos, 2)
+
+        # Calculate the arrowhead points
+        arrow_length = 10
+        angle = math.atan2(end_pos[1] - start_pos[1], end_pos[0] - start_pos[0])
+        arrow_angle = math.radians(30)
+
+        def draw_arrowhead(end_pos, reverse=False):
+            if reverse:
+                angle_adjusted = angle + math.pi
+            else:
+                angle_adjusted = angle
+
+            point_a = (end_pos[0] - arrow_length * math.cos(angle_adjusted + arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted + arrow_angle))
+            point_b = (end_pos[0] - arrow_length * math.cos(angle_adjusted - arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted - arrow_angle))
+            pygame.draw.polygon(screen, BLACK, [end_pos, point_a, point_b], 0)
+
+        # Draw arrowheads at both ends
+        draw_arrowhead(end_pos)
+        draw_arrowhead(start_pos, reverse=True)
+
+        # Draw label
+        font = pygame.font.Font(None, 24)
+        text = font.render(label, True, BLACK)
+        text_center_x = (start_pos[0] + end_pos[0]) // 2
+        text_center_y = (start_pos[1] + end_pos[1]) // 2
+
+        # Calculate label offset
+        label_offset = 15
+        offset_x = label_offset * math.sin(angle)
+        offset_y = -label_offset * math.cos(angle)
+
+        if not label_above:
+            offset_x = -offset_x
+            offset_y = -offset_y
+
+        text_rect = text.get_rect(center=(text_center_x + offset_x, text_center_y + offset_y))
+
+        # Rotate text
+        rotated_text = pygame.transform.rotate(text, math.degrees(-angle))
+        rotated_text_rect = rotated_text.get_rect(center=text_rect.center)
+
+        screen.blit(rotated_text, rotated_text_rect)
+
+    # Renders The Screen
+    def render(self, pygame_screen):
+        # Draw the main menu
+        pygame_screen.fill(WHITE)
+        text = font.render("Storage Tank Sizing Based off Retention Time: Assumed Cylindrical", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        pygame_screen.blit(text, text_rect)
+
+        # Draw the storage tank schematic
+        tank_width = 300
+        tank_height = 500
+        border_width = 5
+        tank_x = screen_length // 2 - tank_width//2
+        tank_y = screen_height // 2 - tank_height//2
+
+        self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x-tank_width/2+100,tank_y+tank_height),(tank_x-tank_width/2+100,tank_y),"L")
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x,tank_y+100),(tank_x+tank_width,tank_y+100),"D")        
+        self.update_output_fields()
+        # Draw the input field rectangle
+        for i, rect in enumerate(self.input_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.input_labels[i].rsplit(' ', 1)
+
+            # Draw the input field label on the right side of the input box
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 10  # Move the label 10 pixels to the left of the input box
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the input field text
+            text_surface = font.render(self.input_values[i], True, BLACK)
+            text_rect = text_surface.get_rect()
+            text_rect.centerx = rect.centerx
+            text_rect.centery = rect.centery
+            pygame_screen.blit(text_surface, text_rect)
+
+            # Draw the input field unit on the left side of the input box
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 10  # Move the unit 10 pixels to the right of the input box
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the output field rectangles
+        for i, rect in enumerate(self.output_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.output_labels[i].rsplit(' ', 1)
+
+            # Draw the output field label
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 5  # Adjust the position
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the output field value
+            value_surface = font.render(self.output_values[i], True, BLACK)
+            value_rect = value_surface.get_rect()
+            value_rect.centerx = rect.centerx
+            value_rect.centery = rect.centery
+            pygame_screen.blit(value_surface, value_rect)
+
+            # Draw the output field unit
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 5  # Adjust the position
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the back button
+        pygame.draw.rect(pygame_screen, GRAY, self.back_rect[0])
+        back_button = font.render(self.back_text[0], True, BLACK)
+        back_button_rect = back_button.get_rect()
+        back_button_rect.center = self.back_rect[0].center
+        pygame_screen.blit(back_button, back_button_rect)
+        # Draw the next button
+        pygame.draw.rect(pygame_screen, GRAY, self.next_rect[0])
+        next_button = font.render(self.next_text[0], True, BLACK)
+        next_button_rect = next_button.get_rect()
+        next_button_rect.center = self.next_rect[0].center
+        pygame_screen.blit(next_button, next_button_rect)
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
+        if self.in_back:
+            self.manager.go_to(VesselsPage())
+
+        # Draw the back button
+        pygame.draw.rect(pygame_screen, GRAY, self.back_rect[0])
+        back_button = font.render(self.back_text[0], True, BLACK)
+        back_button_rect = back_button.get_rect()
+        back_button_rect.center = self.back_rect[0].center
+        pygame_screen.blit(back_button, back_button_rect)
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
 # Define Plate Heat Exchanger Page
 class PlateHexPage(Page):
     pass
@@ -1586,7 +2485,7 @@ class PositiveDisplacementPumpsPage(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Equipment Sizing", True, BLACK)
+        text = font.render("Positive Displacement Pump Sizing", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
         for i, rect in enumerate(self.menu_rects):
@@ -1789,7 +2688,693 @@ class FluidHandlingPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define Pipes Page
 class PipesPage(Page):
+    def __init__(self,page_manager = None):
+        self.menu_rects = [
+        pygame.Rect(button_start_x, button_start_y, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 2, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 3, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 4, button_width, button_height)
+    ]
+        self.menu_texts = [
+            "Diameter Sizing",
+            "Pipe Pressure Drop",
+            "Pipe Wall Thickness",
+            "Pipe Heat Transfer",
+            "Back"
+        ]
+        self.in_diameter_sizing = False
+        self.in_pipe_pressure_drop = False
+        self.in_pipe_wall_thickness = False
+        self.in_pipe_heat_transfer = False
+        self.in_back = False
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_diameter_sizing = True
+                    elif i == 1:
+                        self.in_pipe_pressure_drop = True
+                    elif i == 2:
+                        self.in_pipe_wall_thickness = True
+                    elif i == 3:
+                        self.in_pipe_heat_transfer = True
+                    elif i == 4:
+                        self.in_back = True
+
+        if self.in_diameter_sizing:
+            print("Diameter Sizing Page")
+            self.manager.go_to(PipeDiameterSizingPage())
+        elif self.in_pipe_pressure_drop:
+            print("Pipe Pressure Drop Page")
+            self.manager.go_to(PipePressureDropPage())
+        elif self.in_pipe_wall_thickness:
+            print("Pipe Wall Thickness Page")
+            self.manager.go_to(PipeWallThicknessPage())
+        elif self.in_pipe_heat_transfer:
+            print("Pipe Heat Transfer Page")
+            self.manager.go_to(PipeHeatTransferPage())
+        elif self.in_back:
+            print("Back")
+            self.manager.go_to(FluidHandlingPage())
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Pipes", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
+# Define Pipe Pressure Drop Page
+class PipePressureDropPage(Page):
+    def __init__(self,page_manager=None):
+        self.menu_rects = [
+        pygame.Rect(button_start_x, button_start_y, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height)
+    ]
+        self.menu_texts = [
+            "Back",
+            "Next"
+        ]
+        self.in_back = False
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_back = True
+                    elif i == 1:
+                        self.in_next = True
+        if self.in_back:
+            print("Back")
+            self.manager.go_to(PipesPage())
+        elif self.in_next:
+            print("Next")
+            self.manager.go_to(PipePressureDropPage())
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Pipe Pressure Drop", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
+# Define Pipe Wall Thickness Page
+class PipeWallThicknessPage(Page):
     pass
+# Define Pipe Heat Transfer Page
+class PipeHeatTransferPage(Page):
+    def __init__(self,page_manager =None):
+        self.menu_rects = [
+        pygame.Rect(button_start_x, button_start_y, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height)
+    ]
+        self.menu_texts = [
+            "Back",
+            "Next"
+        ]
+        self.in_back = False
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_back = True
+                    elif i == 1:
+                        self.in_next = True
+        if self.in_back:
+            print("Back")
+            self.manager.go_to(PipesPage())
+        elif self.in_next:
+            print("Next")
+            self.manager.go_to(PipeHeatTransferPage2())
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Pipe Heat Transfer", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
+# Define Pipe Heat Transfer Page 2
+class PipeHeatTransferPage2(Page):
+    def __init__(self,pygame_screen=None):
+        self.menu_rects = [
+        pygame.Rect(button_start_x, button_start_y, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height)
+    ]
+        self.menu_texts = [
+            "Back",
+            "Next"
+        ]
+        self.in_back = False
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_back = True
+                    elif i == 1:
+                        self.in_next = True
+        if self.in_back:
+            print("Back")
+            self.manager.go_to(PipeHeatTransferPage())
+        elif self.in_next:
+            print("Next")
+            self.manager.go_to(PipeHeatTransferPage3())
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Pipe Heat Transfer", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
+# Define Pipe Diameter Sizing Page
+class PipeDiameterSizingPage(Page):
+    def __init__(self,page_manager = None):
+        self.menu_rects = [
+        pygame.Rect(button_start_x, button_start_y, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height)
+    ]
+        self.menu_texts = [
+            "Back",
+            "Next"
+        ]
+        self.input_labels = ["Flow (l/s):","Econ. Velocity (m/s):"]
+        self.input_values = ["", ""]
+        self.input_rects = [
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + button_height + button_padding, button_width, button_height)]
+        self.output_labels = ["Econ. Diameter (mm):","Econ. Diameter (in):"]
+        self.output_values = ["", ""]
+        self.output_rects = [
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y, button_width, button_height),
+            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y + button_height + button_padding, button_width, button_height)]
+        self.in_back = False
+        self.in_next = False
+        self.manager = page_manager
+        self.active_input = None
+    def handle_event(self, event):
+        if event.type == pygame.QUIT:
+            pygame.quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if the mouse clicked inside any of the input fields
+            clicked_inside_input = False
+            for i, rect in enumerate(self.input_rects):
+                if rect.collidepoint(event.pos):
+                    self.active_input = i
+                    print(self.input_labels[i])
+                    clicked_inside_input = True
+
+            if not clicked_inside_input:
+                self.active_input = None
+
+            if self.menu_rects[0].collidepoint(event.pos):
+                self.in_back = True
+                print("Back")
+            elif self.menu_rects[1].collidepoint(event.pos):
+                self.in_next = True
+                print("Next")
+        elif event.type == pygame.KEYDOWN and self.active_input is not None:
+            # If an input field is active and a key is pressed, update the input value accordingly
+            if event.key == pygame.K_RETURN:
+                # If the Enter key is pressed, submit the input value and keep the value in the input field
+                print("Input value for", self.input_labels[self.active_input], "is", self.input_values[self.active_input])
+                self.active_input = None
+            elif event.key == pygame.K_BACKSPACE:
+                # If the Backspace key is pressed, remove the last character from the input value
+                self.input_values[self.active_input] = self.input_values[self.active_input][:-1]
+            elif event.unicode.isdigit() or event.unicode == '.':  # Allow only numeric input and decimal points
+                # If a character key is pressed, add the character to the input value
+                self.input_values[self.active_input] += event.unicode     
+        if self.in_back:
+            self.manager.go_to(PipesPage())
+        elif self.in_next:
+            self.manager.go_to(PipeDiameterSizingPage2())
+    def update_input_field(self):
+        # Update the input text surface
+        input_surface = font.render(self.input_values[self.active_input], True, BLACK)
+        pygame.draw.rect(screen, WHITE, self.input_rects[self.active_input])
+        screen.blit(input_surface, (self.input_rects[self.active_input].x + 5, self.input_rects[self.active_input].y + 5))
+        pygame.draw.rect(screen, BLACK, self.input_rects[self.active_input], 2)
+    def update_output_fields(self):
+        try:
+            flow = float(self.input_values[0])
+            flow = flow/1000
+            velocity = float(self.input_values[1])
+            diameter_mm = ((flow*4/(velocity*math.pi))**(1/2))*1000
+            diameter_in = diameter_mm/25.4
+
+            self.output_values = [f"{diameter_mm:.2f}",f"{diameter_in:.2f}"]
+        except ValueError:
+            self.output_values = ["",""]
+    def draw_storage_tank(self, screen, x, y, width, height, border_width):
+        # Draw the tank body
+        tank_color = (255, 255, 255)  # White
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y, width, height // 2))
+        # Draw the Liquid in the tank
+        tank_color = (0, 0, 255)  # Blue
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 2))
+        tank_border_color = (0, 0, 0)  # Black
+        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)     
+    def draw_pipe_with_double_arrow(self,screen, start_pos, end_pos, label, label_above=True):
+        # Draw the line
+        pygame.draw.line(screen, BLACK, start_pos, end_pos, 2)
+
+        # Calculate the arrowhead points
+        arrow_length = 10
+        angle = math.atan2(end_pos[1] - start_pos[1], end_pos[0] - start_pos[0])
+        arrow_angle = math.radians(30)
+
+        def draw_arrowhead(end_pos, reverse=False):
+            if reverse:
+                angle_adjusted = angle + math.pi
+            else:
+                angle_adjusted = angle
+
+            point_a = (end_pos[0] - arrow_length * math.cos(angle_adjusted + arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted + arrow_angle))
+            point_b = (end_pos[0] - arrow_length * math.cos(angle_adjusted - arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted - arrow_angle))
+            pygame.draw.polygon(screen, BLACK, [end_pos, point_a, point_b], 0)
+
+        # Draw arrowheads at both ends
+        draw_arrowhead(end_pos)
+        draw_arrowhead(start_pos, reverse=True)
+
+        # Draw label
+        font = pygame.font.Font(None, 24)
+        text = font.render(label, True, BLACK)
+        text_center_x = (start_pos[0] + end_pos[0]) // 2
+        text_center_y = (start_pos[1] + end_pos[1]) // 2
+
+        # Calculate label offset
+        label_offset = 15
+        offset_x = label_offset * math.sin(angle)
+        offset_y = -label_offset * math.cos(angle)
+
+        if not label_above:
+            offset_x = -offset_x
+            offset_y = -offset_y
+
+        text_rect = text.get_rect(center=(text_center_x + offset_x, text_center_y + offset_y))
+
+        # Rotate text
+        rotated_text = pygame.transform.rotate(text, math.degrees(-angle))
+        rotated_text_rect = rotated_text.get_rect(center=text_rect.center)
+
+        screen.blit(rotated_text, rotated_text_rect)
+    # Renders The Screen
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Diameter Sizing: Knowns: Flow, Economic Velocity", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
+        
+
+        # Draw the storage tank schematic
+        tank_width = 300
+        tank_height = 500
+        border_width = 5
+        tank_x = screen_length // 2 - tank_width//2
+        tank_y = screen_height // 2 - tank_height//2
+
+        self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x-tank_width/2+100,tank_y+tank_height),(tank_x-tank_width/2+100,tank_y),"L")
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x,tank_y+100),(tank_x+tank_width,tank_y+100),"D")        
+        self.update_output_fields()
+        # Draw the input field rectangle
+        for i, rect in enumerate(self.input_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.input_labels[i].rsplit(' ', 1)
+
+            # Draw the input field label on the right side of the input box
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 10  # Move the label 10 pixels to the left of the input box
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the input field text
+            text_surface = font.render(self.input_values[i], True, BLACK)
+            text_rect = text_surface.get_rect()
+            text_rect.centerx = rect.centerx
+            text_rect.centery = rect.centery
+            pygame_screen.blit(text_surface, text_rect)
+
+            # Draw the input field unit on the left side of the input box
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 10  # Move the unit 10 pixels to the right of the input box
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the output field rectangles
+        for i, rect in enumerate(self.output_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.output_labels[i].rsplit(' ', 1)
+
+            # Draw the output field label
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 5  # Adjust the position
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the output field value
+            value_surface = font.render(self.output_values[i], True, BLACK)
+            value_rect = value_surface.get_rect()
+            value_rect.centerx = rect.centerx
+            value_rect.centery = rect.centery
+            pygame_screen.blit(value_surface, value_rect)
+
+            # Draw the output field unit
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 5  # Adjust the position
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the back button
+        pygame.draw.rect(pygame_screen, GRAY, self.menu_rects[0])
+        back_button = font.render(self.menu_texts[0], True, BLACK)
+        back_button_rect = back_button.get_rect()
+        back_button_rect.center = self.menu_rects[0].center
+        pygame_screen.blit(back_button, back_button_rect)
+        # Draw the next button
+        pygame.draw.rect(pygame_screen, GRAY, self.menu_rects[1])
+        next_button = font.render(self.menu_texts[1], True, BLACK)
+        next_button_rect = next_button.get_rect()
+        next_button_rect.center = self.menu_rects[1].center
+        pygame_screen.blit(next_button, next_button_rect)
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
+        if self.in_back:
+            self.manager.go_to(FluidHandlingPage())
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
+        
+# Define Pipe Diameter Sizing Page 2
+class PipeDiameterSizingPage2(Page):
+    def __init__(self,page_manager = None):
+        self.menu_rects = [
+        pygame.Rect(button_start_x, button_start_y, button_width, button_height)]
+        self.menu_texts = [
+            "Back"]
+        self.input_labels = ["Flow (l/s):","Diameter (mm):"]
+        self.input_values = ["", ""]
+        self.input_rects = [
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y, button_width, button_height),
+            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + button_height + button_padding, button_width, button_height)]
+        self.output_labels = ["Velocity (m/s):"]
+        self.output_values = [""]
+        self.output_rects = [pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y, button_width, button_height)]
+        self.in_back = False
+        self.in_next = False
+        self.manager = page_manager
+        self.active_input = None
+    def handle_event(self, event):
+        if event.type == pygame.QUIT:
+            pygame.quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if the mouse clicked inside any of the input fields
+            clicked_inside_input = False
+            for i, rect in enumerate(self.input_rects):
+                if rect.collidepoint(event.pos):
+                    self.active_input = i
+                    print(self.input_labels[i])
+                    clicked_inside_input = True
+
+            if not clicked_inside_input:
+                self.active_input = None
+
+            if self.menu_rects[0].collidepoint(event.pos):
+                self.in_back = True
+                print("Back")
+
+        elif event.type == pygame.KEYDOWN and self.active_input is not None:
+            # If an input field is active and a key is pressed, update the input value accordingly
+            if event.key == pygame.K_RETURN:
+                # If the Enter key is pressed, submit the input value and keep the value in the input field
+                print("Input value for", self.input_labels[self.active_input], "is", self.input_values[self.active_input])
+                self.active_input = None
+            elif event.key == pygame.K_BACKSPACE:
+                # If the Backspace key is pressed, remove the last character from the input value
+                self.input_values[self.active_input] = self.input_values[self.active_input][:-1]
+            elif event.unicode.isdigit() or event.unicode == '.':  # Allow only numeric input and decimal points
+                # If a character key is pressed, add the character to the input value
+                self.input_values[self.active_input] += event.unicode
+                
+        if self.in_back:
+            self.manager.go_to(PipeDiameterSizingPage())
+        elif self.in_next:
+            self.manager.go_to(PipesPage())
+    def update_input_field(self):
+        # Update the input text surface
+        input_surface = font.render(self.input_values[self.active_input], True, BLACK)
+        pygame.draw.rect(screen, WHITE, self.input_rects[self.active_input])
+        screen.blit(input_surface, (self.input_rects[self.active_input].x + 5, self.input_rects[self.active_input].y + 5))
+        pygame.draw.rect(screen, BLACK, self.input_rects[self.active_input], 2)
+    def update_output_fields(self):
+        try:
+            flow = float(self.input_values[0])
+            flow = flow/1000
+            diameter_mm = float(self.input_values[1])
+            velocity = flow*4/(math.pi*(diameter_mm/1000)**2)
+
+            self.output_values = [f"{velocity:.2f}"]
+        except ValueError:
+            self.output_values = [""]
+    def draw_storage_tank(self, screen, x, y, width, height, border_width):
+        # Draw the tank body
+        tank_color = (255, 255, 255)  # White
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y, width, height // 2))
+        # Draw the Liquid in the tank
+        tank_color = (0, 0, 255)  # Blue
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 2))
+        tank_border_color = (0, 0, 0)  # Black
+        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)     
+    def draw_pipe_with_double_arrow(self,screen, start_pos, end_pos, label, label_above=True):
+        # Draw the line
+        pygame.draw.line(screen, BLACK, start_pos, end_pos, 2)
+
+        # Calculate the arrowhead points
+        arrow_length = 10
+        angle = math.atan2(end_pos[1] - start_pos[1], end_pos[0] - start_pos[0])
+        arrow_angle = math.radians(30)
+
+        def draw_arrowhead(end_pos, reverse=False):
+            if reverse:
+                angle_adjusted = angle + math.pi
+            else:
+                angle_adjusted = angle
+
+            point_a = (end_pos[0] - arrow_length * math.cos(angle_adjusted + arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted + arrow_angle))
+            point_b = (end_pos[0] - arrow_length * math.cos(angle_adjusted - arrow_angle),
+                    end_pos[1] - arrow_length * math.sin(angle_adjusted - arrow_angle))
+            pygame.draw.polygon(screen, BLACK, [end_pos, point_a, point_b], 0)
+
+        # Draw arrowheads at both ends
+        draw_arrowhead(end_pos)
+        draw_arrowhead(start_pos, reverse=True)
+
+        # Draw label
+        font = pygame.font.Font(None, 24)
+        text = font.render(label, True, BLACK)
+        text_center_x = (start_pos[0] + end_pos[0]) // 2
+        text_center_y = (start_pos[1] + end_pos[1]) // 2
+
+        # Calculate label offset
+        label_offset = 15
+        offset_x = label_offset * math.sin(angle)
+        offset_y = -label_offset * math.cos(angle)
+
+        if not label_above:
+            offset_x = -offset_x
+            offset_y = -offset_y
+
+        text_rect = text.get_rect(center=(text_center_x + offset_x, text_center_y + offset_y))
+
+        # Rotate text
+        rotated_text = pygame.transform.rotate(text, math.degrees(-angle))
+        rotated_text_rect = rotated_text.get_rect(center=text_rect.center)
+
+        screen.blit(rotated_text, rotated_text_rect)
+    # Renders The Screen
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Diameter Sizing: Knowns: Flow, Pipe Diameter", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
+        
+
+        # Draw the storage tank schematic
+        tank_width = 300
+        tank_height = 500
+        border_width = 5
+        tank_x = screen_length // 2 - tank_width//2
+        tank_y = screen_height // 2 - tank_height//2
+
+        self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x-tank_width/2+100,tank_y+tank_height),(tank_x-tank_width/2+100,tank_y),"L")
+        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x,tank_y+100),(tank_x+tank_width,tank_y+100),"D")        
+        self.update_output_fields()
+        # Draw the input field rectangle
+        for i, rect in enumerate(self.input_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.input_labels[i].rsplit(' ', 1)
+
+            # Draw the input field label on the right side of the input box
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 10  # Move the label 10 pixels to the left of the input box
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the input field text
+            text_surface = font.render(self.input_values[i], True, BLACK)
+            text_rect = text_surface.get_rect()
+            text_rect.centerx = rect.centerx
+            text_rect.centery = rect.centery
+            pygame_screen.blit(text_surface, text_rect)
+
+            # Draw the input field unit on the left side of the input box
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 10  # Move the unit 10 pixels to the right of the input box
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the output field rectangles
+        for i, rect in enumerate(self.output_rects):
+            pygame.draw.rect(pygame_screen, WHITE, rect)
+            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
+
+            # Split the label into label and unit
+            label, unit = self.output_labels[i].rsplit(' ', 1)
+
+            # Draw the output field label
+            label_surface = font.render(label, True, BLACK)
+            label_rect = label_surface.get_rect()
+            label_rect.right = rect.left - 5  # Adjust the position
+            label_rect.centery = rect.centery
+            pygame_screen.blit(label_surface, label_rect)
+
+            # Draw the output field value
+            value_surface = font.render(self.output_values[i], True, BLACK)
+            value_rect = value_surface.get_rect()
+            value_rect.centerx = rect.centerx
+            value_rect.centery = rect.centery
+            pygame_screen.blit(value_surface, value_rect)
+
+            # Draw the output field unit
+            unit_surface = font.render(unit, True, BLACK)
+            unit_rect = unit_surface.get_rect()
+            unit_rect.left = rect.right + 5  # Adjust the position
+            unit_rect.centery = rect.centery
+            pygame_screen.blit(unit_surface, unit_rect)
+        # Draw the back button
+        pygame.draw.rect(pygame_screen, GRAY, self.menu_rects[0])
+        back_button = font.render(self.menu_texts[0], True, BLACK)
+        back_button_rect = back_button.get_rect()
+        back_button_rect.center = self.menu_rects[0].center
+        pygame_screen.blit(back_button, back_button_rect)
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
+        if self.in_back:
+            self.manager.go_to(PipeDiameterSizingPage())
+
+        # Update the active input field, if any
+        if self.active_input is not None:
+            self.update_input_field()
+
+        pygame.display.update()
+# Define Pipe Velocity Page
+class PipeVelocityPage(Page):
+    def __init__(self,page_manager = None):
+        self.menu_rects = [
+        pygame.Rect(button_start_x, button_start_y, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height)
+    ]
+        self.menu_texts = [
+            "Back",
+            "Next"
+        ]
+        self.in_back = False
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_back = True
+                    elif i == 1:
+                        self.in_next = True
+        if self.in_back:
+            print("Back")
+            self.manager.go_to(PipeDiameterSizingPage())
+        elif self.in_next:
+            print("Calculate")
+            self.manager.go_to(PipeVelocityPage())
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Velocity Sizing", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
 # Bends Page
 class BendsPage(Page):
     pass
@@ -1968,7 +3553,6 @@ class GasAlarmsPage(Page):
 # Define the Flare System Page
 class FlareSystemPage(Page):
     pass
-
 # Define Capital Cost Page
 class CapitalCostEstimationPage(Page):
     def __init__(self,page_manager = None):
@@ -2180,6 +3764,7 @@ class PhysicalPropertiesPage(Page):
             text = font.render(self.menu_texts[i], True, BLACK)
             text_rect = text.get_rect(center=rect.center)
             pygame_screen.blit(text, text_rect)
+# Define a basic button class
 class Button:
     def __init__(self, x, y, width, height, text, font_size, bg_color):
         self.rect = pygame.Rect(x, y, width, height)
@@ -2196,6 +3781,7 @@ class Button:
 
     def is_clicked(self, mouse_pos):
         return self.rect.collidepoint(mouse_pos)
+# Define InputFieldWithUnits Class
 class InputFieldWithUnits:
     def __init__(self, font, font_name, label='', max_length=None, var_name='', units=''):
         self.label = label
@@ -2276,6 +3862,7 @@ class InputFieldWithUnits:
         self.surface.blit(units_numerator_surf, (units_x + additional_offset // 2 + (max_unit_width - units_numerator_surf.get_width()) // 2, 5))
         pygame.draw.line(self.surface, BLACK, (units_x - 5 + additional_offset // 2, 30), (units_x + max_unit_width + 5 + additional_offset // 2, 30), 1)
         self.surface.blit(units_denominator_surf, (units_x + additional_offset // 2, 35))
+# Define the InputField class
 class InputField:
     def __init__(self, font, label='', max_length=None):
         self.label = label
@@ -2347,6 +3934,7 @@ class InputField:
         unit_rect.left = rect.right + 10  # Move the unit 10 pixels to the right of the input box
         unit_rect.centery = rect.centery
         surface.blit(unit_surface, unit_rect)
+# Define the AddChemicalPage class
 class AddChemicalPage(Page):
     def __init__(self, page_manager = None):
         super().__init__()
@@ -2402,7 +3990,6 @@ class FindChemicalPage(Page):
         pass
     def render(self, pygame_screen):
         pass
-
 # Define the Flowsheet Renderer Class
 class FlowsheetRenderer:
     def __init__(self,flowsheet):
@@ -2673,7 +4260,7 @@ class FlowsheetRenderer:
         pygame.draw.ellipse(screen, BLACK, (center_pos[0] - 30, center_pos[1] - 60, 60, 30), 2)
         pygame.draw.rect(screen, BLACK, (center_pos[0] - 30, center_pos[1] - 30, 60, 60), 2)
         pygame.draw.ellipse(screen, BLACK, (center_pos[0] - 30, center_pos[1], 60, 30), 2)
-
+    # Draw a right swing check valve
     def draw_left_swing_check_valve(screen, center_pos, triangle_base, color=BLACK, fill_color=WHITE):
         # Calculate triangle height
         triangle_height = (math.sqrt(3) / 2) * triangle_base
@@ -2696,7 +4283,7 @@ class FlowsheetRenderer:
 
         # Draw the outline of the right triangle
         pygame.draw.polygon(screen, color, [right_triangle_base_top, right_triangle_base_bottom, touching_point], 2)
-
+    # Draw a right swing check valve
     def draw_right_swing_check_valve(screen, center_pos, triangle_base, color=BLACK, fill_color=WHITE):
         # Calculate triangle height
         triangle_height = (math.sqrt(3) / 2) * triangle_base
@@ -3244,6 +4831,8 @@ class StrippingColumn(Block):
 class AbsorptionColumn(Block):
     pass
 
+class Pipe(Block):
+    pass
 # Enums for block types
 class BlockType(Enum):
     Tank = "Tank"
@@ -3253,15 +4842,8 @@ class BlockType(Enum):
     DistillationColumn = "Distillation Column"  # Add this line
     StrippingColumn = "Stripping Column"
     AbsorptionColumn = "Absorption Column"
-    StorageTank = "Storage Tank"
+    Pipe = "Pipe"
 
-# Create a ui_manager object
-#ui_manager = pygame_gui.UIManager(screen_dimensions)
-
-# Create the MainMenuPage object
-#main_menu_page = MainMenuPage(screen_dimensions=screen_dimensions, ui_manager=ui_manager)
-
-# Create the MainMenuPage object
 # Create the MainMenuPage object
 main_menu_page = MainMenuPage()
 
@@ -3284,15 +4866,20 @@ while page_manager.running:
     if isinstance(page_manager.current_page, NewFlowsheetPage) and page_manager.current_page.new_flowsheet_created:
         filename = page_manager.current_page.text_input.strip() + ".pkl"
         print("Flowsheet created: ", filename)
-        page_manager.change_page(RunFlowsheetSimulation(filename, screen, page_manager).run())
+        flowsheet_sim = RunFlowsheetSimulation(filename, screen, page_manager)
+        flowsheet_sim.run()
+
+        if flowsheet_sim.go_to_main_menu:
+            page_manager.current_page = MainMenuPage()
 
     # Render the current page
     page_manager.render(screen)
     pygame.display.flip()
     clock.tick(60)
 
-
 print("Thanks for using Franks Chemical Simulator")
+
+
 #you could encapsulate the state for each menu in a class or something
 #and the game loop can pick what class to render based on the state
 
