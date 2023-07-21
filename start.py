@@ -4,7 +4,10 @@ import pickle
 import math
 from enum import Enum
 import os
+import subprocess
 flowsheet_version = "Flowsheet Simulator v.1.0.0"
+# Get the current directory
+current_directory = os.path.dirname(os.path.abspath(__file__))
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (128, 128, 128, 128)
@@ -12,25 +15,45 @@ BLUE = (0, 0, 255)
 
 # Initialize Pygame
 pygame.init()
+info = pygame.display.Info()
+screen_width = info.current_w
+screen_height = info.current_h
 
 # Set up the Pygame window
-WINDOW_SIZE = (1800, 900)
-screen_dimensions = WINDOW_SIZE
-screen_length = WINDOW_SIZE[0]
-screen_width = WINDOW_SIZE[0]
-screen_height = WINDOW_SIZE[1]
+scale_factor = 0.8
+window_width = int(screen_width * scale_factor)
+window_height = int(screen_height * scale_factor)
+window_size = (window_width, window_height)
+WINDOW_SIZE = (screen_width, screen_height)
 screen = pygame.display.set_mode(WINDOW_SIZE)
 pygame.display.set_caption("Frank's Chemical Process Simulator")
 
 # Set up fonts
 font = pygame.font.Font(None, 40)
 
+# Define button size as a percentage of the window size
+button_width_percent = 0.2
+button_height_percent = 0.1
+
+# Calculate button size based on the window size
+button_width = int(window_width * button_width_percent)
+button_height = int(window_height * button_height_percent)
+
+
 # Define buttons
-button_width = 300
-button_height = 75
 button_padding = 50
 button_start_x = (WINDOW_SIZE[0] - button_width) / 2
 button_start_y = (WINDOW_SIZE[1] - (button_height + button_padding) * 5) / 2
+
+# Define the font size as a percentage of the window size
+font_size_percent = 0.05
+
+# Calculate the font size based on the window size
+font_size = int(window_height * font_size_percent)
+
+# Create a font object
+font = pygame.font.SysFont(None, font_size)
+
 
 # Defines the abstract class called page
 class Page:
@@ -102,7 +125,7 @@ class MainMenuPage(Page):
         elif self.in_equiptment_sizing:
             self.manager.go_to(EquipmentSizingPage())
         elif self.in_capital_cost:
-            self.manager.go_to(CapitalCostEstimationPage())
+            self.manager.go_to(ProcessEconomicsPage())
         elif self.in_process_safety:
             self.manager.go_to(ProcessSafetyPage())
         elif self.in_physical_properties:
@@ -3108,8 +3131,7 @@ class PipeDiameterSizingPage(Page):
         if self.active_input is not None:
             self.update_input_field()
 
-        pygame.display.update()
-        
+        pygame.display.update()     
 # Define Pipe Diameter Sizing Page 2
 class PipeDiameterSizingPage2(Page):
     def __init__(self,page_manager = None):
@@ -3554,20 +3576,23 @@ class GasAlarmsPage(Page):
 class FlareSystemPage(Page):
     pass
 # Define Capital Cost Page
-class CapitalCostEstimationPage(Page):
+class ProcessEconomicsPage(Page):
     def __init__(self,page_manager = None):
         self.menu_rects = [
         pygame.Rect(button_start_x-100, button_start_y, button_width+200, button_height+20),
         pygame.Rect(button_start_x-125, button_start_y + button_height + button_padding, button_width+250, button_height+20),
-        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 2, button_width, button_height)
+        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 2, button_width, button_height),
+        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 3, button_width, button_height)
     ]
         self.menu_texts = [
         "Estimate Flowsheet Capital Cost",
         "Edit Capital Cost Estimation Factors",
+        "Optimal Pipe Diameter",
         "Back"
     ]
         self.in_estimate_flowsheet_capital_cost= False
         self.in_edit_capital_cost_estimation_factors = False
+        self.in_optimal_pipe_diameter = False
         self.in_back = False
         self.manager = page_manager
     def handle_event(self, event):
@@ -3579,17 +3604,21 @@ class CapitalCostEstimationPage(Page):
                     elif i == 1:
                         self.in_edit_capital_cost_estimation_factors = True
                     elif i == 2:
+                        self.in_optimal_pipe_diameter = True
+                    elif i == 3:
                         self.in_back = True
         if self.in_estimate_flowsheet_capital_cost:
             self.manager.go_to(EstimateFlowsheetCapitalCostEstimationPage())
         elif self.in_edit_capital_cost_estimation_factors:
             self.manager.go_to(EditCapitalCostEstimationParametersPage())
+        elif self.in_optimal_pipe_diameter:
+            self.manager.go_to(OptimalPipeDiameterPage())
         elif self.in_back:
             self.manager.go_to(MainMenuPage())
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Capital Cost Estimation", True, BLACK)
+        text = font.render("Process Economics", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
         for i, rect in enumerate(self.menu_rects):
@@ -3598,6 +3627,49 @@ class CapitalCostEstimationPage(Page):
             text_rect = text.get_rect(center=rect.center)
             pygame_screen.blit(text, text_rect)
 # Define The Estimate 
+class OptimalPipeDiameterPage(Page):
+    def __init__(self) -> None:
+        self.menu_rects = [
+        pygame.Rect(button_start_x-100, button_start_y, button_width+200, button_height+20),
+        pygame.Rect(button_start_x-125, button_start_y + button_height + button_padding, button_width+250, button_height+20)
+    ]
+        self.menu_texts = [
+        "Start Optimal Pipe Diameter Calculation Program for Sweden By Oscar Rexxit",
+        "Back"
+    ]
+        self.in_start_optimal_pipe_diameter_calculation_program_for_sweden_by_oscar_rexxit = False
+        self.in_back = False
+        self.manager = page_manager
+        self.subprocess_obj = None  # Store the subprocess object here
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_start_optimal_pipe_diameter_calculation_program_for_sweden_by_oscar_rexxit = True
+                    elif i == 1:
+                        self.in_back = True
+        if self.in_start_optimal_pipe_diameter_calculation_program_for_sweden_by_oscar_rexxit:
+            subprocess.run(["python3", os.path.join(current_directory,"kostnadsoptimering_ror.py")])
+            self.in_start_optimal_pipe_diameter_calculation_program_for_sweden_by_oscar_rexxit = False
+        elif self.in_back:
+            self.manager.go_to(ProcessEconomicsPage())
+    def exit(self):
+        # Terminate the subprocess if it exists before navigating away from this page
+        if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
+            self.subprocess_obj.terminate()
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Optimal Pipe Diameter", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
+    
 class EstimateFlowsheetCapitalCostEstimationPage(Page):
     pass
 # Define Edit Capital Cost Estimation Parameters Page
