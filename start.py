@@ -383,14 +383,14 @@ class RunFlowsheetSimulation(Page):
                     if not self.menu_open:
                         for block in self.block_list:
                             if block["rect"].collidepoint(mouse_x, mouse_y):
-                                dragged_block = block
+                                self.dragged_block = block
                                 break
             if event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
                     self.left_click = False
-                    dragged_block = None
+                    self.dragged_block = None
         else:
-            if self.left_click and dragged_block is not None:
+            if self.left_click and self.dragged_block is not None:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 self.dragged_block["rect"].x = mouse_x - self.dragged_block["rect"].width // 2
                 self.dragged_block["rect"].y = mouse_y - self.dragged_block["rect"].height // 2
@@ -420,13 +420,22 @@ class RunFlowsheetSimulation(Page):
             block = Tank(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
         elif block_type == BlockType.CentrifugalPump:
             block = CentrifugalPump(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
-        elif block_type == BlockType.Valve:
-            block = Valve(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
+        elif block_type == BlockType.HandValve:
+            block = HandValve(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
+        elif block_type == BlockType.ControlValve:
+            block = ControlValve(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
+        elif block_type == BlockType.ReliefValve:
+            block = ReliefValve(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
         elif block_type == BlockType.FlashTank:
             block = FlashTank(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
         elif block_type == BlockType.DistillationColumn:
             block = DistillationColumn(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
-
+        elif block_type == BlockType.GeneralHeatExchanger:
+            block = GeneralHeatExchanger(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
+        elif block_type == BlockType.STHeatExchanger:
+            block = STHeatExchanger(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
+        elif block_type == BlockType.PlateHeatExchanger:
+            block = PlateHeatExchanger(name=f"{block_type.name}_{len(self.flowsheet.blocks)}", position=(x, y))
         self.flowsheet.blocks.append(block)
         print(f"Added {block.name} at position {block.position}")  # Add this line for debugging
 
@@ -437,7 +446,12 @@ class RunFlowsheetSimulation(Page):
     def draw_blocks(self):
         for block in self.block_list:
             if block["type"] == BlockType.CentrifugalPump.value:
-                self.renderer.draw_centrifugal_pump(self.screen, block["rect"].center)
+                self.flowsheet_renderer.draw_centrifugal_pump(self.screen, block["rect"].center)
+                print("Drawing Pump")
+            elif block["type"] == BlockType.Tank.value:
+                self.flowsheet_renderer.draw_storage_tank(self.screen, block["rect"].center)
+                print("Drawing Tank")
+            
             else:
                 pygame.draw.rect(self.screen, self.BLUE, block["rect"])
                 text = self.font.render(block["instance"].name, True, self.BLACK)  # Update this line to use block's name instead of its type
@@ -478,26 +492,12 @@ class RunFlowsheetSimulation(Page):
 
         if self.paused:
             self.draw_pause_menu()
-        def draw_centrifugal_pump(screen, center_pos, radius=20):
-            pygame.draw.circle(screen, BLACK, center_pos, radius, 2)
-
-            start_angle1 = math.pi / 2
-            start_angle2 = 3 * math.pi / 2
-            end_angle = 2 * math.pi
-
-            start_point1 = (int(center_pos[0] + radius * math.cos(start_angle1)),
-                            int(center_pos[1] - radius * math.sin(start_angle1)))
-            start_point2 = (int(center_pos[0] + radius * math.cos(start_angle2)),
-                            int(center_pos[1] - radius * math.sin(start_angle2)))
-            end_point = (int(center_pos[0] + radius * math.cos(end_angle)),
-                        int(center_pos[1] - radius * math.sin(end_angle)))
-
-            pygame.draw.line(screen, BLACK, start_point1, end_point, 2)
-            pygame.draw.line(screen, BLACK, start_point2, end_point, 2)
         # Draw centrifugal pumps
         for block in self.flowsheet.blocks:
             if isinstance(block, CentrifugalPump):
-                draw_centrifugal_pump(screen, block.position)
+                self.flowsheet_renderer.draw_centrifugal_pump(screen, block.position)
+            elif isinstance(block, Tank):
+                self.flowsheet_renderer.draw_storage_tank(screen, block.position[0], block.position[1], width=30, height=100, border_width=2)
         pygame.display.update()
 # Define the New flosheet Page
 class NewFlowsheetPage(Page):
@@ -1087,7 +1087,7 @@ class ExpansionVesselPage(Page):
         tank_width = 300
         tank_height = 500
         border_width = 5
-        tank_x = screen_length // 2 - tank_width//2
+        tank_x = screen_width // 2 - tank_width//2
         tank_y = screen_height // 2 - tank_height//2
 
         self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
@@ -1189,10 +1189,10 @@ class OpenTankSizingPage1(Page):
     def __init__(self, page_manager=None):
         button_padding = 30
         self.back_rect = [
-            pygame.Rect(button_start_x / 2 - button_width / 2 - 200, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+            pygame.Rect(button_start_x //2 - button_width //2 - 200, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
         ]
         self.next_rect = [
-            pygame.Rect(button_start_x / 2 + button_width / 2 + 900, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+            pygame.Rect(button_start_x //4 + screen_width*0.65, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
 
         ]
 
@@ -1347,7 +1347,7 @@ class OpenTankSizingPage1(Page):
         tank_width = 300
         tank_height = 500
         border_width = 5
-        tank_x = screen_length // 2 - tank_width//2
+        tank_x = screen_width // 2 - tank_width//2
         tank_y = screen_height // 2 - tank_height//2
 
         self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
@@ -1584,7 +1584,7 @@ class OpenTankSizingPage2(Page):
         tank_width = 300
         tank_height = 500
         border_width = 5
-        tank_x = screen_length // 2 - tank_width//2
+        tank_x = screen_width // 2 - tank_width//2
         tank_y = screen_height // 2 - tank_height//2
 
         self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
@@ -1837,7 +1837,7 @@ class VentilatedTanksPage(Page):
         tank_width = 300
         tank_height = 500
         border_width = 5
-        tank_x = screen_length // 2 - tank_width//2
+        tank_x = screen_width // 2 - tank_width//2
         tank_y = screen_height // 2 - tank_height//2
 
         self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
@@ -1948,14 +1948,14 @@ class HeatExchangerPage(Page):
         "Shell and Tube",
         "Plate",
         "Spiral",
-        "Finned Tube",
+        "Single Tube",
         "Double Pipe",
         "Back"
     ]
         self.in_shell_tube_heat_exchanger= False
         self.in_plate_heat_exchanger = False
         self.in_spiral_heat_exchanger = False
-        self.in_finned_tube_heat_exchanger = False
+        self.in_SingleTube_heat_exchanger = False
         self.in_double_pipe_heat_exchanger = False
         self.in_back = False
         self.manager = page_manager
@@ -1970,7 +1970,7 @@ class HeatExchangerPage(Page):
                     elif i == 2:
                         self.in_spiral_heat_exchanger = True
                     elif i == 3:
-                        self.in_finned_tube_heat_exchanger = True
+                        self.in_SingleTube_heat_exchanger = True
                     elif i == 4:
                         self.in_double_pipe_heat_exchanger = True
                     elif i == 5:
@@ -1981,8 +1981,8 @@ class HeatExchangerPage(Page):
             self.manager.go_to(PlateHexPage())
         elif self.in_spiral_heat_exchanger:
             self.manager.go_to(SpiralHexPage())
-        elif self.in_finned_tube_heat_exchanger:
-            self.manager.go_to(FinnedHexPage())
+        elif self.in_SingleTube_heat_exchanger:
+            self.manager.go_to(SingleTubeHexPage())
         elif self.in_double_pipe_heat_exchanger:
             self.manager.go_to(DoublePipeHexPage())
         elif self.in_back:
@@ -2002,269 +2002,58 @@ class HeatExchangerPage(Page):
 class ShellTubeHexPage(Page):
     def __init__(self, page_manager=None):
         button_padding = 30
-        self.back_rect = [
-            pygame.Rect(button_start_x / 2 - button_width / 2 - 200, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
+        self.menu_rects = [
+            pygame.Rect(button_start_x-100, button_start_y, button_width+200, button_height+20),
+            pygame.Rect(button_start_x-125, button_start_y + button_height + button_padding, button_width+250, button_height+20)
         ]
-        self.next_rect = [
-            pygame.Rect(button_start_x / 2 + button_width / 2 + 900, button_start_y + (button_height + button_padding) * 4 + 100, button_width, button_height)
-
+        self.menu_texts = [
+            "Start Shell and Tube Heat Exchanger Designer By Örjan Johansson",
+            "Back"
         ]
 
         self.back_text = ["Back"]
-        self.next_text = ["Next"]
-        self.input_labels = ["In Flow (m3/s):", "Out Flow (m3/s):", "Retention Time (s):", "L/D (m/m):"]
-        self.input_values = ["", "", "", ""]
-        self.input_rects = [
-            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y, button_width, button_height),
-            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + button_height + button_padding, button_width, button_height),
-            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height),
-            pygame.Rect(button_start_x / 2 - button_width / 2, button_start_y + 3 * button_height + 3 * button_padding, button_width, button_height)
-        ]
-        self.output_labels = ["Req. Volume (m³):", "Length (m):", "Diameter (m):"]
-        self.output_values = ["", "", ""]
-        self.output_rects = [
-            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y, button_width, button_height),
-            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y + button_height + button_padding, button_width, button_height),
-            pygame.Rect(3 * button_start_x / 2 + button_width / 2, button_start_y + 2 * button_height + 2 * button_padding, button_width, button_height)
-        ]
-        self.in_back = False
-        self.in_next = False
-        self.manager = page_manager
-        self.active_input = None
-    def handle_event(self, event):
-        if event.type == pygame.QUIT:
-            pygame.quit()
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            # Check if the mouse clicked inside any of the input fields
-            clicked_inside_input = False
-            for i, rect in enumerate(self.input_rects):
-                if rect.collidepoint(event.pos):
-                    self.active_input = i
-                    print(self.input_labels[i])
-                    clicked_inside_input = True
-
-            if not clicked_inside_input:
-                self.active_input = None
-
-            if self.back_rect[0].collidepoint(event.pos):
-                self.in_back = True
-                print("Back")
-            elif self.next_rect[0].collidepoint(event.pos):
-                self.in_next = True
-                print("Next")
-
-        elif event.type == pygame.KEYDOWN and self.active_input is not None:
-            # If an input field is active and a key is pressed, update the input value accordingly
-            if event.key == pygame.K_RETURN:
-                # If the Enter key is pressed, submit the input value and keep the value in the input field
-                print("Input value for", self.input_labels[self.active_input], "is", self.input_values[self.active_input])
-                self.active_input = None
-            elif event.key == pygame.K_BACKSPACE:
-                # If the Backspace key is pressed, remove the last character from the input value
-                self.input_values[self.active_input] = self.input_values[self.active_input][:-1]
-            elif event.unicode.isdigit() or event.unicode == '.':  # Allow only numeric input and decimal points
-                # If a character key is pressed, add the character to the input value
-                self.input_values[self.active_input] += event.unicode
-                
-        if self.in_back:
-            self.manager.go_to(VesselsPage())
-        elif self.in_next:
-            self.manager.go_to(OpenTankSizingPage2())
-    def update_input_field(self):
-        # Update the input text surface
-        input_surface = font.render(self.input_values[self.active_input], True, BLACK)
-        pygame.draw.rect(screen, WHITE, self.input_rects[self.active_input])
-        screen.blit(input_surface, (self.input_rects[self.active_input].x + 5, self.input_rects[self.active_input].y + 5))
-        pygame.draw.rect(screen, BLACK, self.input_rects[self.active_input], 2)
-    def update_output_fields(self):
-        try:
-            retention_time = float(self.input_values[2])
-            out_flow = float(self.input_values[1])
-            ld_ratio = float(self.input_values[3])
-
-            req_volume = retention_time * out_flow
-            diameter = (1/3)*(4 * req_volume*9 / (math.pi))**(1/3)
-            length = diameter * ld_ratio
-
-            self.output_values = [f"{req_volume:.2f}", f"{length:.2f}", f"{diameter:.2f}"]
-        except ValueError:
-            self.output_values = ["", "", ""]
-
-    def draw_storage_tank(self, screen, x, y, width, height, border_width):
-        # Draw the tank body
-        tank_color = (255, 255, 255)  # White
-        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y, width, height // 2))
-        # Draw the Liquid in the tank
-        tank_color = (0, 0, 255)  # Blue
-        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 2))
-        tank_border_color = (0, 0, 0)  # Black
-        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)
-
         
-    def draw_pipe_with_double_arrow(self,screen, start_pos, end_pos, label, label_above=True):
-        # Draw the line
-        pygame.draw.line(screen, BLACK, start_pos, end_pos, 2)
-
-        # Calculate the arrowhead points
-        arrow_length = 10
-        angle = math.atan2(end_pos[1] - start_pos[1], end_pos[0] - start_pos[0])
-        arrow_angle = math.radians(30)
-
-        def draw_arrowhead(end_pos, reverse=False):
-            if reverse:
-                angle_adjusted = angle + math.pi
-            else:
-                angle_adjusted = angle
-
-            point_a = (end_pos[0] - arrow_length * math.cos(angle_adjusted + arrow_angle),
-                    end_pos[1] - arrow_length * math.sin(angle_adjusted + arrow_angle))
-            point_b = (end_pos[0] - arrow_length * math.cos(angle_adjusted - arrow_angle),
-                    end_pos[1] - arrow_length * math.sin(angle_adjusted - arrow_angle))
-            pygame.draw.polygon(screen, BLACK, [end_pos, point_a, point_b], 0)
-
-        # Draw arrowheads at both ends
-        draw_arrowhead(end_pos)
-        draw_arrowhead(start_pos, reverse=True)
-
-        # Draw label
-        font = pygame.font.Font(None, 24)
-        text = font.render(label, True, BLACK)
-        text_center_x = (start_pos[0] + end_pos[0]) // 2
-        text_center_y = (start_pos[1] + end_pos[1]) // 2
-
-        # Calculate label offset
-        label_offset = 15
-        offset_x = label_offset * math.sin(angle)
-        offset_y = -label_offset * math.cos(angle)
-
-        if not label_above:
-            offset_x = -offset_x
-            offset_y = -offset_y
-
-        text_rect = text.get_rect(center=(text_center_x + offset_x, text_center_y + offset_y))
-
-        # Rotate text
-        rotated_text = pygame.transform.rotate(text, math.degrees(-angle))
-        rotated_text_rect = rotated_text.get_rect(center=text_rect.center)
-
-        screen.blit(rotated_text, rotated_text_rect)
-
-    # Renders The Screen
+    
+        self.in_start_shell_and_tube_heat_exchanger_designer_by_orjan_johansson = False
+        self.in_back = False
+        self.manager = page_manager
+        self.subprocess_obj = None  # Store the subprocess object here
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_start_shell_and_tube_heat_exchanger_designer_by_orjan_johansson = True
+                    elif i == 1:
+                        self.in_back = True
+        if self.in_start_shell_and_tube_heat_exchanger_designer_by_orjan_johansson:
+            subprocess.run(["python3", os.path.join(current_directory,"ST_HEX_Orjan_GUI.py")])
+            self.in_start_shell_and_tube_heat_exchanger_designer_by_orjan_johansson = False
+        elif self.in_back:
+            self.manager.go_to(HeatExchangerPage())
+    def exit(self):
+        # Terminate the subprocess if it exists before navigating away from this page
+        if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
+            self.subprocess_obj.terminate()
     def render(self, pygame_screen):
         # Draw the main menu
-        pygame_screen.fill(WHITE)
-        text = font.render("Storage Tank Sizing Based off Retention Time: Assumed Cylindrical", True, BLACK)
+        screen.fill(WHITE)
+        text = font.render("Shell and Tube Heat Exchanger Sizing", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
-        pygame_screen.blit(text, text_rect)
-
-        # Draw the storage tank schematic
-        tank_width = 300
-        tank_height = 500
-        border_width = 5
-        tank_x = screen_length // 2 - tank_width//2
-        tank_y = screen_height // 2 - tank_height//2
-
-        self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
-        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x-tank_width/2+100,tank_y+tank_height),(tank_x-tank_width/2+100,tank_y),"L")
-        self.draw_pipe_with_double_arrow(pygame_screen,(tank_x,tank_y+100),(tank_x+tank_width,tank_y+100),"D")        
-        self.update_output_fields()
-        # Draw the input field rectangle
-        for i, rect in enumerate(self.input_rects):
-            pygame.draw.rect(pygame_screen, WHITE, rect)
-            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
-
-            # Split the label into label and unit
-            label, unit = self.input_labels[i].rsplit(' ', 1)
-
-            # Draw the input field label on the right side of the input box
-            label_surface = font.render(label, True, BLACK)
-            label_rect = label_surface.get_rect()
-            label_rect.right = rect.left - 10  # Move the label 10 pixels to the left of the input box
-            label_rect.centery = rect.centery
-            pygame_screen.blit(label_surface, label_rect)
-
-            # Draw the input field text
-            text_surface = font.render(self.input_values[i], True, BLACK)
-            text_rect = text_surface.get_rect()
-            text_rect.centerx = rect.centerx
-            text_rect.centery = rect.centery
-            pygame_screen.blit(text_surface, text_rect)
-
-            # Draw the input field unit on the left side of the input box
-            unit_surface = font.render(unit, True, BLACK)
-            unit_rect = unit_surface.get_rect()
-            unit_rect.left = rect.right + 10  # Move the unit 10 pixels to the right of the input box
-            unit_rect.centery = rect.centery
-            pygame_screen.blit(unit_surface, unit_rect)
-        # Draw the output field rectangles
-        for i, rect in enumerate(self.output_rects):
-            pygame.draw.rect(pygame_screen, WHITE, rect)
-            pygame.draw.rect(pygame_screen, GRAY, rect, 2)
-
-            # Split the label into label and unit
-            label, unit = self.output_labels[i].rsplit(' ', 1)
-
-            # Draw the output field label
-            label_surface = font.render(label, True, BLACK)
-            label_rect = label_surface.get_rect()
-            label_rect.right = rect.left - 5  # Adjust the position
-            label_rect.centery = rect.centery
-            pygame_screen.blit(label_surface, label_rect)
-
-            # Draw the output field value
-            value_surface = font.render(self.output_values[i], True, BLACK)
-            value_rect = value_surface.get_rect()
-            value_rect.centerx = rect.centerx
-            value_rect.centery = rect.centery
-            pygame_screen.blit(value_surface, value_rect)
-
-            # Draw the output field unit
-            unit_surface = font.render(unit, True, BLACK)
-            unit_rect = unit_surface.get_rect()
-            unit_rect.left = rect.right + 5  # Adjust the position
-            unit_rect.centery = rect.centery
-            pygame_screen.blit(unit_surface, unit_rect)
-        # Draw the back button
-        pygame.draw.rect(pygame_screen, GRAY, self.back_rect[0])
-        back_button = font.render(self.back_text[0], True, BLACK)
-        back_button_rect = back_button.get_rect()
-        back_button_rect.center = self.back_rect[0].center
-        pygame_screen.blit(back_button, back_button_rect)
-        # Draw the next button
-        pygame.draw.rect(pygame_screen, GRAY, self.next_rect[0])
-        next_button = font.render(self.next_text[0], True, BLACK)
-        next_button_rect = next_button.get_rect()
-        next_button_rect.center = self.next_rect[0].center
-        pygame_screen.blit(next_button, next_button_rect)
-
-        # Update the active input field, if any
-        if self.active_input is not None:
-            self.update_input_field()
-
-        pygame.display.update()
-        if self.in_back:
-            self.manager.go_to(VesselsPage())
-
-        # Draw the back button
-        pygame.draw.rect(pygame_screen, GRAY, self.back_rect[0])
-        back_button = font.render(self.back_text[0], True, BLACK)
-        back_button_rect = back_button.get_rect()
-        back_button_rect.center = self.back_rect[0].center
-        pygame_screen.blit(back_button, back_button_rect)
-
-        # Update the active input field, if any
-        if self.active_input is not None:
-            self.update_input_field()
-
-        pygame.display.update()
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Plate Heat Exchanger Page
 class PlateHexPage(Page):
     pass
 # Define Spiral Heat Exchanger Page
 class SpiralHexPage(Page):
     pass
-# Define Finned Heat Exchanger Page
-class FinnedHexPage(Page):
+# Define SingeTube Heat Exchanger Page
+class SingleTubeHexPage(Page):
     pass
 # Define Double Pipe Heat Exchanger Page
 class DoublePipeHexPage(Page):
@@ -3043,7 +2832,7 @@ class PipeDiameterSizingPage(Page):
         tank_width = 300
         tank_height = 500
         border_width = 5
-        tank_x = screen_length // 2 - tank_width//2
+        tank_x = screen_width // 2 - tank_width//2
         tank_y = screen_height // 2 - tank_height//2
 
         self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
@@ -3277,7 +3066,7 @@ class PipeDiameterSizingPage2(Page):
         tank_width = 300
         tank_height = 500
         border_width = 5
-        tank_x = screen_length // 2 - tank_width//2
+        tank_x = screen_width // 2 - tank_width//2
         tank_y = screen_height // 2 - tank_height//2
 
         self.draw_storage_tank(pygame_screen, tank_x, tank_y, tank_width, tank_height, border_width)
@@ -3634,7 +3423,7 @@ class OptimalPipeDiameterPage(Page):
         pygame.Rect(button_start_x-125, button_start_y + button_height + button_padding, button_width+250, button_height+20)
     ]
         self.menu_texts = [
-        "Start Optimal Pipe Diameter Calculation Program for Sweden By Oscar Rexxit",
+        "Start Optimal Pipe Diameter Calculation Program for Sweden By Oscar Rexid",
         "Back"
     ]
         self.in_start_optimal_pipe_diameter_calculation_program_for_sweden_by_oscar_rexxit = False
@@ -3669,7 +3458,7 @@ class OptimalPipeDiameterPage(Page):
             text = font.render(self.menu_texts[i], True, BLACK)
             text_rect = text.get_rect(center=rect.center)
             pygame_screen.blit(text, text_rect)
-    
+# Define Estimate Flowsheet Capital Cost Estimation Page
 class EstimateFlowsheetCapitalCostEstimationPage(Page):
     pass
 # Define Edit Capital Cost Estimation Parameters Page
@@ -3731,7 +3520,52 @@ class EstimateFlowsheetSafetyPage(Page):
     pass
 # Define Chemical Safety Page
 class FindChemicalSafetyPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+        button_padding = 30
+        self.menu_rects = [
+            pygame.Rect(button_start_x-100, button_start_y, button_width+200, button_height+20),
+            pygame.Rect(button_start_x-125, button_start_y + button_height + button_padding, button_width+250, button_height+20)
+        ]
+        self.menu_texts = [
+            "Start Industrial Hygeine Finder",
+            "Back"
+        ]
+
+        self.back_text = ["Back"]
+        
+    
+        self.in_start_industrial_hygeine_finder = False
+        self.in_back = False
+        self.manager = page_manager
+        self.subprocess_obj = None  # Store the subprocess object here
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_start_industrial_hygeine_finder = True
+                    elif i == 1:
+                        self.in_back = True
+        if self.in_start_industrial_hygeine_finder:
+            subprocess.run(["python3", os.path.join(current_directory,"Chemical_Safety.py")])
+            self.in_start_industrial_hygeine_finder = False
+        elif self.in_back:
+            self.manager.go_to(ProcessSafetyPage())
+    def exit(self):
+        # Terminate the subprocess if it exists before navigating away from this page
+        if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
+            self.subprocess_obj.terminate()
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("TWA STEL Data", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        for i, rect in enumerate(self.menu_rects):
+            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Safety Instrument Page
 class SafetyInstrumentationPage(Page):
     def __init__(self,page_manager = None):
@@ -3743,12 +3577,12 @@ class SafetyInstrumentationPage(Page):
     ]
         self.menu_texts = [
         "Rupture Disks",
-        "Releif Valves",
+        "relief Valves",
         "Gas Alarms",
         "Back"
     ]
         self.in_rupture_disk= False
-        self.in_releif_valves = False
+        self.in_relief_valves = False
         self.in_gas_alarms = False
         self.in_back = False
         self.manager = page_manager
@@ -3759,15 +3593,15 @@ class SafetyInstrumentationPage(Page):
                     if i == 0:
                         self.in_rupture_disk = True
                     elif i == 1:
-                        self.in_releif_valves = True
+                        self.in_relief_valves = True
                     elif i == 2:
                         self.in_gas_alarms = True
                     elif i == 3:
                         self.in_back = True
         if self.in_rupture_disk:
             self.manager.go_to(RuptureDiskPage())
-        elif self.in_releif_valves:
-            self.manager.go_to(ReleifValvesPage())
+        elif self.in_relief_valves:
+            self.manager.go_to(ReliefValvesPage())
         elif self.in_gas_alarms:
             self.manager.go_to(GasAlarmsPage())
         elif self.in_back:
@@ -3786,8 +3620,8 @@ class SafetyInstrumentationPage(Page):
 # Define Rupture Disk Page
 class RuptureDiskPage(Page):
     pass
-# Define Releif Valves Page
-class ReleifValvesPage(Page):
+# Define relief Valves Page
+class ReliefValvesPage(Page):
     pass
 # Define Physical Properties Page
 class PhysicalPropertiesPage(Page):
@@ -4184,7 +4018,7 @@ class FlowsheetRenderer:
 
         pygame.draw.lines(screen, color, False, pointlist, width)
     # Draw online instrumentation
-    def draw_online_instrumentation(screen, center_pos, label):
+    def draw_online_instrumentation(self,screen, center_pos, label):
         # Create font and render text
         font = pygame.font.Font(None, 24)
         text = font.render(label, True, BLACK)
@@ -4205,7 +4039,7 @@ class FlowsheetRenderer:
         text_rect = text.get_rect(center=center_pos)
         screen.blit(text, text_rect)
     # Draw a distillation column
-    def draw_distillation_column(screen, center_pos, label, column_width, column_height, tray_thickness=2):
+    def draw_distillation_column(self,screen, center_pos, label, column_width, column_height, tray_thickness=2):
         # Create font and render text
         font = pygame.font.Font(None, 24)
         text = font.render(label, True, BLACK)
@@ -4240,7 +4074,7 @@ class FlowsheetRenderer:
         rotated_text_rect = text.get_rect(center=center_pos)
         screen.blit(text, rotated_text_rect)
     # Draw a shell and tube heat exchanger
-    def draw_shell_and_tube_heat_exchanger(screen, center_pos):
+    def draw_shell_and_tube_heat_exchanger(self,screen, center_pos):
         # Draw shell
         pygame.draw.ellipse(screen, BLACK, (center_pos[0] - 50, center_pos[1] - 20, 100, 40), 2)
 
@@ -4252,7 +4086,7 @@ class FlowsheetRenderer:
         pygame.draw.rect(screen, BLACK, (center_pos[0] - 60, center_pos[1] - 20, 10, 40), 2)
         pygame.draw.rect(screen, BLACK, (center_pos[0] + 50, center_pos[1] - 20, 10, 40), 2)
     # Draw a heat exchanger
-    def draw_heat_exchanger(screen, center_pos, radius=20):
+    def draw_heat_exchanger(self,screen, center_pos, radius=20):
         # Draw circle
         pygame.draw.circle(screen, BLACK, center_pos, radius, 2)
 
@@ -4271,7 +4105,7 @@ class FlowsheetRenderer:
         ]
         pygame.draw.lines(screen, BLACK, False, zigzag_points, 2)
     # Draw a filter press
-    def draw_filter_press(screen, center_pos, label, column_width, column_height, tray_thickness=2):
+    def draw_filter_press(self,screen, center_pos, label, column_width, column_height, tray_thickness=2):
         # Create font and render text
         font = pygame.font.Font(None, 24)
         text = font.render(label, True, BLACK)
@@ -4299,7 +4133,7 @@ class FlowsheetRenderer:
         rotated_text_rect = rotated_text.get_rect(center=center_pos)
         screen.blit(rotated_text, rotated_text_rect)
     # Draw a dome roof tank
-    def draw_dome_roof_tank(screen, center_pos, width, height, color=BLACK):
+    def draw_dome_roof_tank(self,screen, center_pos, width, height, color=BLACK):
         # Draw the tank body (rectangle)
         tank_rect = pygame.Rect(center_pos[0] - width / 2, center_pos[1], width, height)
         pygame.draw.rect(screen, color, tank_rect, 2)
@@ -4308,7 +4142,7 @@ class FlowsheetRenderer:
         dome_rect = pygame.Rect(center_pos[0] - width / 2, center_pos[1] - height / 2, width, height)
         pygame.draw.arc(screen, color, dome_rect, 0, math.pi, 2)
     # Draw a centrifugal pump
-    def draw_centrifugal_pump(screen, center_pos, radius=20):
+    def draw_centrifugal_pump(self,screen, center_pos, radius=20):
         pygame.draw.circle(screen, BLACK, center_pos, radius, 2)
 
         start_angle1 = math.pi / 2
@@ -4328,10 +4162,16 @@ class FlowsheetRenderer:
     def draw_tank(screen, center_pos):
         pygame.draw.rect(screen, BLACK, (center_pos[0] - 25, center_pos[1] - 50, 50, 100), 2)
     # Draw a storage tank
-    def draw_storage_tank(screen, center_pos):
-        pygame.draw.ellipse(screen, BLACK, (center_pos[0] - 30, center_pos[1] - 60, 60, 30), 2)
-        pygame.draw.rect(screen, BLACK, (center_pos[0] - 30, center_pos[1] - 30, 60, 60), 2)
-        pygame.draw.ellipse(screen, BLACK, (center_pos[0] - 30, center_pos[1], 60, 30), 2)
+    def draw_storage_tank(self, screen, x, y, width, height, border_width):
+        # Draw the tank body
+        tank_color = (255, 255, 255)  # White
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y, width, height // 2))
+        # Draw the Liquid in the tank
+        tank_color = (0, 0, 255)  # Blue
+        pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 2))
+        tank_border_color = (0, 0, 0)  # Black
+        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)
+
     # Draw a right swing check valve
     def draw_left_swing_check_valve(screen, center_pos, triangle_base, color=BLACK, fill_color=WHITE):
         # Calculate triangle height
@@ -4876,45 +4716,102 @@ class Component:
     def __init__(self, name):
         self.name = name
 # ---------------Block subclasses also equiptment---------------
+# The StorageTank class is a subclass of Block
 class Tank(Block):
     def __init__(self, name, position):
         super().__init__(name)
         self.position = position
         self.x, self.y = position
-
+# The CentrifugalPump class is a subclass of Block
 class CentrifugalPump(Block):
     def __init__(self, name, position):
         super().__init__(name)
         self.position = position
         self.x, self.y = position
-
-class Valve(Block):
-    pass
-
+# The Hand Valve class is a subclass of Block
+class HandValve(Block):
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The ReliefValve class is a subclass of Block
+class ReliefValve(Block):
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The ControlValve class is a subclass of Block
+class ControlValve(Block):
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The FlashTank class is a subclass of Block
 class FlashTank(Block):
-    pass
-
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The DistillationColumn class is a subclass of Block
 class DistillationColumn(Block):
-    pass
-
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The StrippingColumn class is a subclass of Block
 class StrippingColumn(Block):
-    pass
-
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The AbsorptionColumn class is a subclass of Block
 class AbsorptionColumn(Block):
-    pass
-
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The Pipe class is a subclass of Block
 class Pipe(Block):
-    pass
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The GeneralHeatExchanger class is a subclass of Block
+class GeneralHeatExchanger(Block):
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The STHeatExchanger class is a subclass of Block
+class STHeatExchanger(Block):
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
+# The PlateHeatExchanger class is a subclass of Block
+class PlateHeatExchanger(Block):
+    def __init__(self, name, position):
+        super().__init__(name)
+        self.position = position
+        self.x, self.y = position
 # Enums for block types
 class BlockType(Enum):
     Tank = "Tank"
     CentrifugalPump = "Centrifugal Pump"
-    Valve = "Valve"
+    HandValve = "Hand Valve"
+    ControlValve = "Control Valve"
+    ReliefValve = "Relief Valve"
     FlashTank = "Flash Tank"
     DistillationColumn = "Distillation Column"  # Add this line
     StrippingColumn = "Stripping Column"
     AbsorptionColumn = "Absorption Column"
     Pipe = "Pipe"
+    GeneralHeatExchanger = "Heat Exchanger"
+    STHeatExchanger = "Shell and Tube Heat Exchanger"
+    PlateHeatExchanger = "Plate Heat Exchanger"
+    CSTR = "Continuous Stirred Tank Reactor"
+    PFR = "Plug Flow Reactor"
+    BatchReactor = "Batch Reactor"
 
 # Create the MainMenuPage object
 main_menu_page = MainMenuPage()

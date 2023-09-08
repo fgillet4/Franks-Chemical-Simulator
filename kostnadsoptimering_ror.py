@@ -13,21 +13,17 @@ current_directory = os.path.dirname(os.path.abspath(__file__))
 class Calculations:
     def velocity(d,q):
         return (q/3600)/(((d/2)**2)*math.pi);
-    
-    def headloss(f,dim,v):
-        hl = f*(sys_length/dim)*2*den*(v**2);
-        return hl;
         
     #friction coeffecient for laminar flow
     def laminar(re):
         f = 64/re;
         return f;
 
-    def reynolds_number(v,den,sys_length,dyn_vis):
-        rey = den*v*sys_length/dyn_vis;
+    def reynolds_number(v,den,dim,dyn_vis):
+        rey = den*v*dim/dyn_vis;
         return rey;
         
-    #calculate friction coeffecient for turbulent flow using some fancy method
+    #calculate friction coeffecient for turbulent flow using Mileikovskyi method, no iteration needed
     def Mileikovskyi(re,rr): 
         A0 = -0.79638*math.log((rr/8.298)+(7.3357/re));
         A1 = re*rr+9.3120665*A0;
@@ -41,7 +37,7 @@ class Calculations:
             K += fluids.fittings.bend_rounded(Di=d,angle=90,fd=f);
         K += fluids.fittings.exit_normal();
         K += fluids.core.K_from_f(fd=f, L=sys_length, D=d)
-        loss = fluids.core.dP_from_K(K=K,rho=den,V=v);
+        loss = fluids.core.dP_from_K(K=K,rho=den,V=v); # returns pressure loss in Pa
         return loss;
 
     #yearly energy cost
