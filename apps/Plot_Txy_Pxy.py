@@ -41,10 +41,13 @@ class DiagramApp(tk.Tk):
         self.btn_Pxy = ttk.Button(self, text="Plot Pxy", command=self.plot_Pxy)
         self.btn_Pxy.grid(row=4, column=1, pady=20)
 
-        # Canvas for plots
-        self.canvas = FigureCanvasTkAgg(plt.Figure(figsize=(6, 6)), master=self)
-        self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=2)
-    
+        # Add Plot buttons for the two xy diagrams
+        self.btn_xy_vary_P = ttk.Button(self, text="Plot xy (vary P)", command=self.plot_xy_vary_P)
+        self.btn_xy_vary_P.grid(row=4, column=3, pady=20)
+
+        self.btn_xy_vary_T = ttk.Button(self, text="Plot xy (vary T)", command=self.plot_xy_vary_T)
+        self.btn_xy_vary_T.grid(row=4, column=4, pady=20)
+        
     def get_flasher(self):
         # Extract values from the GUI
         molecules = [m.strip() for m in self.molecules_entry.get().split(',')]
@@ -82,21 +85,69 @@ class DiagramApp(tk.Tk):
         flasher = self.get_flasher()
         if not flasher:
             return
+
         P = float(self.pressure_entry.get()) * 1e5  # Convert to Pascals
-        fig, ax = plt.subplots()
-        _ = flasher.plot_Txy(P=P, pts=100, ax=ax)
-        self.canvas.figure = fig
-        self.canvas.draw()
+        T, x, y = flasher.plot_Txy(P=P, pts=100)
+
+        # Use matplotlib for external plotting
+        plt.figure()
+        plt.plot(x, T, label="Liquid Phase")
+        plt.plot(y, T, label="Vapor Phase")
+        plt.title("Txy Diagram")
+        plt.xlabel("Composition")
+        plt.ylabel("Temperature (K)")
+        plt.legend()
+        plt.show()
 
     def plot_Pxy(self):
         flasher = self.get_flasher()
         if not flasher:
             return
+
         T = float(self.temperature_entry.get())
-        fig, ax = plt.subplots()
-        _ = flasher.plot_Pxy(T=T, pts=100, ax=ax)
-        self.canvas.figure = fig
-        self.canvas.draw()
+        P, x, y = flasher.plot_Pxy(T=T, pts=100)
+
+        plt.figure()
+        plt.plot(x, P, label="Liquid Phase")
+        plt.plot(y, P, label="Vapor Phase")
+        plt.title("Pxy Diagram")
+        plt.xlabel("Composition")
+        plt.ylabel("Pressure (Pa)")
+        plt.legend()
+        plt.show()
+
+    def plot_xy_vary_P(self):
+        flasher = self.get_flasher()
+        if not flasher:
+            return
+
+        T = float(self.temperature_entry.get())
+        P, x, y = flasher.plot_xy(T=T, pts=100)  # Vary P at the specified T
+
+        plt.figure()
+        plt.plot(x, y, label="xy Curve (vary P)")
+        plt.title("xy Diagram (varying P)")
+        plt.xlabel("Liquid Composition")
+        plt.ylabel("Vapor Composition")
+        plt.legend()
+        plt.show()
+
+    def plot_xy_vary_T(self):
+        flasher = self.get_flasher()
+        if not flasher:
+            return
+
+        P = float(self.pressure_entry.get()) * 1e5  # Convert to Pascals
+        P, x, y = flasher.plot_xy(P=P, pts=100)  # Vary T at the specified P
+
+        plt.figure()
+        plt.plot(x, y, label="xy Curve (vary T)")
+        plt.title("xy Diagram (varying T)")
+        plt.xlabel("Liquid Composition")
+        plt.ylabel("Vapor Composition")
+        plt.legend()
+        plt.show()
+
 
 app = DiagramApp()
 app.mainloop()
