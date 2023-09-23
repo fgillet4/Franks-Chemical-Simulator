@@ -27,20 +27,4 @@ Platform-Specific Considerations:
 On macOS, you might want to use pip3 instead of pip if both Python 2 and Python 3 are installed.
 
 On Windows, pip should work if it's correctly set up in your PATH. If not, you might need to use the full path to pip or use it from within a Python environment.
-pip install pysindy numpy pandas tkinter xlrd
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score
 
-import pandas as pd
-
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import numpy as np
-import pandas as pd
-from gplearn.genetic import SymbolicRegressor
-from sklearn.metrics import r2_score
-from sklearn.model_selection import train_test_split
