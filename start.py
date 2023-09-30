@@ -288,18 +288,16 @@ class StatisticsPage(Page):
             )
             for i in range(len(self.menu_texts))]
         # Existing Button Texts
-        
-        
-
-        self.in_flowsheet_sim = False
-        self.in_equiptment_sizing = False
-        self.in_capital_cost = False
-        self.in_process_safety = False
-        self.in_physical_properties = False
-        self.in_quit = False
-        self.in_data_processing = False
-        self.in_statistics = False
-        self.in_thermodynamics = False
+        self.in_spearman_pearson = False
+        self.in_anova = False
+        self.in_check_consistency = False
+        self.in_fft = False
+        self.in_gaussian_filter = False
+        self.in_matrix_filler_interpolate = False
+        self.in_moving_average_filter = False
+        self.in_random_forest = False
+        self.in_reduction_pca = False
+        self.in_back = False
 
 
         self.manager = page_manager
@@ -308,24 +306,45 @@ class StatisticsPage(Page):
             for i, rect in enumerate(self.menu_rects):
                 if rect.collidepoint(event.pos):
                     if i == 0:
-                        self.in_flowsheet_sim = True
+                        self.in_spearman_pearson = True
                     elif i == 1:
-                        self.in_equiptment_sizing = True
+                        self.in_anova = True
                     elif i == 2:
-                        self.in_capital_cost = True
+                        self.in_check_consistency = True
                     elif i == 3:
-                        self.in_process_safety = True
+                        self.in_fft = True
                     elif i == 4:
-                        self.in_physical_properties = True
+                        self.in_gaussian_filter = True
                     elif i == 5:
-                        self.manager.running = False
-                        self.in_quit= True
-                    elif i == 6:  # Data Processing Button
-                        self.manager.go_to(DataProcessingPage())
-                    elif i == 7:  # Statistics Button
-                        self.manager.go_to(StatisticsPage())
-                    elif i == 8:  # Thermodynamics Button
-                        self.manager.go_to(ThermodynamicsPage())
+                        self.in_matrix_filler_interpolate = True
+                    elif i == 6:
+                        self.in_moving_average_filter = True
+                    elif i == 7:
+                        self.in_random_forest = True
+                    elif i == 8:
+                        self.in_reduction_pca = True
+                    elif i == 9:
+                        self.in_back = True
+
+        if self.in_spearman_pearson:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Spearman_Pearson_v2.py")])
+            self.in_spearman_pearson = False
+        elif self.in_anova:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_ANOVA.py")])
+            self.in_anova = False
+        elif self.in_check_consistency:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Check_Consistency.py")])
+            self.in_check_consistency = False
+        elif self.in_fft:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_FFT.py")])
+            self.in_fft = False
+        elif self.in_back:
+            self.manager.go_to(StatisticsPage())
+    def exit(self):
+        # Terminate the subprocess if it exists before navigating away from this page
+        if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
+            self.subprocess_obj.terminate()
+
         if self.in_flowsheet_sim:
             self.manager.go_to(FlowsheetSimulationPage())
         elif self.in_equiptment_sizing:
