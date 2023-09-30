@@ -80,28 +80,34 @@ class PageManager:
 # Defines the Main Menu pages
 class MainMenuPage(Page):
     def __init__(self, page_manager=None):
-        self.menu_rects = [
-        pygame.Rect(button_start_x-15, button_start_y, button_width+30, button_height),
-        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height),
-        pygame.Rect(button_start_x-10, button_start_y + (button_height + button_padding) * 2, button_width+20, button_height),
-        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 3, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 4, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 5, button_width, button_height)
-    ]
-        self.menu_texts = [
-        "Flowsheet Simulation",
-        "Equipment Sizing",
-        "Process Economics",
-        "Process Safety",
-        "Physical Properties",
-        "Quit"
-    ]
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
         self.in_flowsheet_sim = False
         self.in_equiptment_sizing = False
         self.in_capital_cost = False
         self.in_process_safety = False
         self.in_physical_properties = False
         self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
         self.manager = page_manager
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -120,6 +126,12 @@ class MainMenuPage(Page):
                     elif i == 5:
                         self.manager.running = False
                         self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
         if self.in_flowsheet_sim:
             self.manager.go_to(FlowsheetSimulationPage())
         elif self.in_equiptment_sizing:
@@ -134,15 +146,316 @@ class MainMenuPage(Page):
             self.manager.running = False
         
     def render(self, pygame_screen):
-        # Draw the main menu
+    # Draw the main menu
         screen.fill(WHITE)
         text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
+# Define the Data Processing Page
+class DataProcessingPage(Page):
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
+# Define the Statistics Page
+class StatisticsPage(Page):
+    def __init__(self, page_manager=None):
+        self.menu_texts = ["Spearman Pearson Testing",
+                            "ANOVA", "Check Consistency",
+                            "FFT", "Gaussian Filter",
+                            "Matrix Filler Interpolate",
+                            "Moving Average Filter",
+                            "Random Forest -> Particle Swarm Optimization",
+                            "Reduction PCA","Back"]
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        column_limit = 5  # Number of buttons per column
+        number_of_columns = -(-len(self.menu_texts) // column_limit)  # Ceiling division to get the number of columns needed
+        
+        self.menu_rects = [
+            pygame.Rect(
+                button_start_x + (button_width + column_padding) * (i // column_limit),  # X-coordinate: moves to the next column every 'column_limit' buttons
+                button_start_y + (button_height + button_padding) * (i % column_limit),  # Y-coordinate: cycles every 'column_limit' buttons
+                button_width,
+                button_height
+            )
+            for i in range(len(self.menu_texts))]
+        # Existing Button Texts
+        
+        
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
+# Define the Thermodynamics Page
+class ThermodynamicsPage(Page):
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Flow Sheet Simulation Page Buttons
 class FlowsheetSimulationPage(Page):
@@ -180,13 +493,27 @@ class FlowsheetSimulationPage(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render(flowsheet_version, True, BLACK)
+        text = font.render("Flowsheet Simulator v1.0.0", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define the Run Flow sheet Page
 class RunFlowsheetSimulation(Page):
@@ -702,15 +1029,29 @@ class EquipmentSizingPage(Page):
         elif self.in_vessels:
             self.manager.go_to(VesselsPage())
     def render(self, pygame_screen):
-        # Draw the main menu
+# Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Equipment Sizing", True, BLACK)
+        text = font.render("Equiptment Sizing", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define the Process Vessels Page
 class VesselsPage(Page):
@@ -753,15 +1094,29 @@ class VesselsPage(Page):
         elif self.in_back:
             self.manager.go_to(EquipmentSizingPage())
     def render(self, pygame_screen):
-        # Draw the main menu
+    # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Types of Process Vessels", True, BLACK)
+        text = font.render("Process Vessels", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define the Pressure Vessels Page
 class PressureVesselsPage(Page):
@@ -811,25 +1166,111 @@ class PressureVesselsPage(Page):
         elif self.in_back:
             self.manager.go_to(VesselsPage())
     def render(self, pygame_screen):
-        # Draw the main menu
+    # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Types of Pressure Vessels", True, BLACK)
+        text = font.render("Types of Process Vessels", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define the Pressure Vessels Page for ASME Standards
 class GenericVerticalPressureVesselPageASME(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Generic Vertical Pressure Vessels ASME", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Pressure Vessels Page for SIS Standards
 class GenericVerticalPressureVesselsPageSIS(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Generic Vertical Pressure Vessel SIS", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Pressure Vessels Page for EN Standards
 class GenericVerticalPressureVesselsPageEN(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Generic Vertical Pressure Vessels", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Generic Horizontal Vessels Page
 class GenericHorizontalVesselPage(Page):
     def __init__(self,page_manager = None):
@@ -870,6 +1311,31 @@ class GenericHorizontalVesselPage(Page):
             self.manager.go_to(PressureVesselsPageEN())
         elif self.in_back:
             self.manager.go_to(PressureVesselsPage())
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Generic Horizontal Vessels", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Generic Vertical Vessels Page
 class GenericVerticalVesselPage(Page):
     def __init__(self) -> None:
@@ -910,19 +1376,58 @@ class GenericVerticalVesselPage(Page):
             self.manager.go_to(GenericVerticalPressureVesselsPageEN())
         elif self.in_back:
             self.manager.go_to(PressureVesselsPage())
-    def render(self, screen):
+    def render(self, pygame_screen):
+    # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Vertical Vessels for Different Building Codes", True, BLACK)
-        text_rect = text.get_rect(center=(screen_width / 2, 100))
+        text = font.render("Generic Vertical Vessels", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
-            screen.blit(text, text_rect)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Boiler Pressure Vessels Page
 class BoilerVesselPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Power Boilers", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Expansion Vessels Page
 class ExpansionVesselPage(Page):
     def __init__(self, page_manager=None):
@@ -1011,7 +1516,6 @@ class ExpansionVesselPage(Page):
             self.output_values = [f"{expansion_vol:.2f}"]
         except ValueError:
             self.output_values = [""]
-
     def draw_storage_tank(self, screen, x, y, width, height, border_width):
         # Draw the tank body
         tank_color = (255, 255, 255)  # White
@@ -1024,9 +1528,7 @@ class ExpansionVesselPage(Page):
         pygame.draw.rect(screen, tank_color, pygame.Rect(x, y + height // 2, width, height // 4))
         # Draw the tank border
         tank_border_color = (0, 0, 0)  # Black
-        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)
-
-        
+        pygame.draw.rect(screen, tank_border_color, pygame.Rect(x - border_width, y - border_width, width + 2 * border_width, height + 2 * border_width), border_width * 2)  
     def draw_pipe_with_double_arrow(self,screen, start_pos, end_pos, label, label_above=True):
         # Draw the line
         pygame.draw.line(screen, BLACK, start_pos, end_pos, 2)
@@ -1074,8 +1576,7 @@ class ExpansionVesselPage(Page):
         rotated_text_rect = rotated_text.get_rect(center=text_rect.center)
 
         screen.blit(rotated_text, rotated_text_rect)
-
-    # Renders The Screen
+     # Renders The Screen
     def render(self, pygame_screen):
         # Draw the main menu
         pygame_screen.fill(WHITE)
@@ -2036,28 +2537,138 @@ class ShellTubeHexPage(Page):
         if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
             self.subprocess_obj.terminate()
     def render(self, pygame_screen):
-        # Draw the main menu
+    # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Shell and Tube Heat Exchanger Sizing", True, BLACK)
+        text = font.render("Shell and Tube Heat Exchanger Design and Sizing", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Plate Heat Exchanger Page
 class PlateHexPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Plate Heat Exchangers", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Spiral Heat Exchanger Page
 class SpiralHexPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Spirial Heat Exchanger", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define SingeTube Heat Exchanger Page
 class SingleTubeHexPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Single Tube HEat Exchanger", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Double Pipe Heat Exchanger Page
 class DoublePipeHexPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Jacked Single pipe Aka Double Pipe Heat Exchanger", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Separations Page
 class SeparationsPage(Page):
     def __init__(self,page_manager = None):
@@ -2100,25 +2711,111 @@ class SeparationsPage(Page):
         elif self.in_back:
             self.manager.go_to(EquipmentSizingPage())
     def render(self, pygame_screen):
-        # Draw the main menu
+    # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Select Separations Type", True, BLACK)
+        text = font.render("Select Separation Type", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define The Gas Separations Page
 class GasSeparationsPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define The Liquid Separations Page
 class LiquidSeparationsPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define The Solids Separations Page
 class SolidSeparationsPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Pumps Page
 class PumpsPage(Page):
     def __init__(self,page_manager = None):
@@ -2160,15 +2857,29 @@ class PumpsPage(Page):
         elif self.in_back:
             self.manager.go_to(EquipmentSizingPage())
     def render(self, pygame_screen):
-        # Draw the main menu
+    # Draw the main menu
         screen.fill(WHITE)
         text = font.render("Types of Pumps", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Centrifugal Pumps Page
 class CentrifugalPumpsPage(Page):
@@ -2218,52 +2929,181 @@ class CentrifugalPumpsPage(Page):
         elif self.in_back:
             self.manager.go_to(PumpsPage())
     def render(self, pygame_screen):
-        # Draw the main menu
+    # Draw the main menu
         screen.fill(WHITE)
         text = font.render("Types of Centrifugal Pumps", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define the Multi-Stage Centrifugal Pumps Page
 class MultiStagePumpsPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the single stage centrifugal pumps page
 class SingleStagePumpsPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Magnetic Pumps Page
 class MagneticDrivePumpsPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Submersible Pumps Page
 class SubmersiblePumpsPage(Page):
-    pass
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Positive Displacement Pumps Page
 class PositiveDisplacementPumpsPage(Page):
     def __init__(self,page_manager = None):
-        self.menu_rects = [
-        pygame.Rect(button_start_x, button_start_y, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y + button_height + button_padding, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 2, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 3, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 4, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * 5, button_width, button_height)
-    ]
-        self.menu_texts = [
-        "Piston",
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        
+        # Existing Button Texts
+        self.menu_texts = ["Piston",
         "Rotary lobe",
+        "Progressive Cavity",
+        "Gear",
         "Diaphragm",
         "Peristaltic",
-        "Screw",
-        "Back"
-    ]
-        self.in_heat_exchangers= False
-        self.in_separations = False
-        self.in_pumps = False
-        self.in_reactos = False
-        self.in_controls = False
+        "Screw Pump",
+        "Back"]
+        
+        # Existing Buttons
+        column_limit = 5  # Number of buttons per column
+        number_of_columns = -(-len(self.menu_texts) // column_limit)  # Ceiling division to get the number of columns needed
+
+        self.menu_rects = [
+            pygame.Rect(
+                button_start_x + (button_width + column_padding) * (i // column_limit),  # X-coordinate: moves to the next column every 'column_limit' buttons
+                button_start_y + (button_height + button_padding) * (i % column_limit),  # Y-coordinate: cycles every 'column_limit' buttons
+                button_width,
+                button_height
+            )
+            for i in range(len(self.menu_texts))
+        ]
+        
+        
+
+
+        self.in_piston_pump= False
+        self.in_rotary_lobe_pump = False
+        self.in_progressive_cavity_pump = False
+        self.in_gear_pump = False
+        self.in_diaphragm_pump = False
+        self.in_peristaltic_pump = False
+        self.in_screw_pump = False
+
         self.in_back = False
         self.manager = page_manager
     def handle_event(self, event):
@@ -2271,43 +3111,161 @@ class PositiveDisplacementPumpsPage(Page):
             for i, rect in enumerate(self.menu_rects):
                 if rect.collidepoint(event.pos):
                     if i == 0:
-                        self.in_heat_exchangers = True
+                        self.manager.go_to(PistonPumpPage())
                     elif i == 1:
-                        self.in_separations = True
+                        self.manager.go_to(RotaryLobePumpPage())
                     elif i == 2:
-                        self.in_pumps = True
+                        self.manager.go_to(ProgressiveCavityPumpPage())
                     elif i == 3:
-                        self.in_reactos = True
+                        self.manager.go_to(GearPumpPage())
                     elif i == 4:
-                        self.in_controls = True
+                        self.manager.go_to(DiaphragmPumpPage())
                     elif i == 5:
-                        self.in_back = True
-        if self.in_heat_exchangers:
-            self.manager.go_to(HeatExchangerPage())
-        elif self.in_separations:
-            self.manager.go_to(SeparationsPage())
-        elif self.in_pumps:
-            self.manager.go_to(PumpsPage())
-        elif self.in_reactos:
-            self.manager.go_to(ReactorsPage())
-        elif self.in_controls:
-            self.manager.go_to(ControlsPage())
-        elif self.in_back:
+                        self.manager.go_to(PeristalticPumpPage())
+                    elif i == 6:
+                        self.manager.go_to(ScrewPumpPage())
+                    elif i == 7:
+                        self.manager.go_to(PumpsPage())  # Assuming 'Back' should go to the previous page
             self.manager.go_to(PumpsPage())
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Positive Displacement Pump Sizing", True, BLACK)
+        text = font.render("Positive Displacement Pump Menu", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
+# Define Piston Pump Page
+class PistonPumpPage(Page):
+    pass
+# Define Rotary Lobe Pump Page
+class RotaryLobePumpPage(Page):
+    pass
+# Define Progressive Cavity Pump Page
+class ProgressiveCavityPumpPage(Page):
+    pass
+# Define Gear Pump Page
+class GearPumpPage(Page):
+    pass
+# Define Diaphragm Pump Page
+class DiaphragmPumpPage(Page):
+    pass
+# Define Peristaltic Pump Page
+class PeristalticPumpPage(Page):
+    pass
+# Define Screw Pump Page
+class ScrewPumpPage(Page):
+    pass
 # Define Ejector Pumps Page
 class EjectorPumpsPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Reactors Page
 class ReactorsPage(Page):
     def __init__(self,page_manager = None):
@@ -2421,10 +3379,58 @@ class ControlsPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define Valves Page
 class ValvesPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Valves!!", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Transfer Functions Page
 class TransferFnPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Transfer Functions o_0", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Fluid Handling Page
 class FluidHandlingPage(Page):
     def __init__(self,page_manager = None):
@@ -2602,7 +3608,31 @@ class PipePressureDropPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define Pipe Wall Thickness Page
 class PipeWallThicknessPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Pipe Wall Thickness?", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Pipe Heat Transfer Page
 class PipeHeatTransferPage(Page):
     def __init__(self,page_manager =None):
@@ -2633,13 +3663,27 @@ class PipeHeatTransferPage(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Pipe Heat Transfer", True, BLACK)
+        text = font.render("Heat transfer in Pipe", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Pipe Heat Transfer Page 2
 class PipeHeatTransferPage2(Page):
@@ -2674,10 +3718,24 @@ class PipeHeatTransferPage2(Page):
         text = font.render("Pipe Heat Transfer", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Pipe Diameter Sizing Page
 class PipeDiameterSizingPage(Page):
@@ -3178,26 +4236,136 @@ class PipeVelocityPage(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Velocity Sizing", True, BLACK)
+        text = font.render("Average Pipe Velocity", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Bends Page
 class BendsPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Orifices Page
 class OrificePage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Tees Page
 class TeesPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Vena Contracta Page
 class VenaContractaPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Sensors Page
 class SensorsPage(Page):
     def __init__(self,page_manager = None):
@@ -3265,16 +4433,178 @@ class SensorsPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define Temperature Sensors Page
 class TemperatureSensorsPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Pressure Sensors Page
 class PressureSensorsPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Flow Sensors Page
 class FlowSensorsPage(Page):
-    pass
+    def render(self, pygame_screen):
+        # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Level Sensors Page
 class LevelSensorsPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Chemical Composition Sensors Page
 class CompositionSensorsPage(Page):
     def __init__(self,page_manager = None):
@@ -3328,13 +4658,283 @@ class CompositionSensorsPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define the pH Sensors Page
 class pHSensorsPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Conductivity Sensors Page
 class ConductivitySensorsPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define FT-IR Sensors Page
 class FtIrPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Gas Alarms Page
 class GasAlarmsPage(Page):
     def __init__(self) -> None:
@@ -3363,7 +4963,97 @@ class GasAlarmsPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define the Flare System Page
 class FlareSystemPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Capital Cost Page
 class ProcessEconomicsPage(Page):
     def __init__(self,page_manager = None):
@@ -3460,10 +5150,190 @@ class OptimalPipeDiameterPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define Estimate Flowsheet Capital Cost Estimation Page
 class EstimateFlowsheetCapitalCostEstimationPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Edit Capital Cost Estimation Parameters Page
 class EditCapitalCostEstimationParametersPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Process Safety Page
 class ProcessSafetyPage(Page):
     def __init__(self,page_manager = None):
@@ -3517,7 +5387,97 @@ class ProcessSafetyPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define Flowsheet Safety Estimation Page
 class EstimateFlowsheetSafetyPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Chemical Safety Page
 class FindChemicalSafetyPage(Page):
     def __init__(self, page_manager=None):
@@ -3619,10 +5579,190 @@ class SafetyInstrumentationPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define Rupture Disk Page
 class RuptureDiskPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define relief Valves Page
 class ReliefValvesPage(Page):
-    pass
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define Physical Properties Page
 class PhysicalPropertiesPage(Page):
     def __init__(self,page_manager = None):
@@ -3886,91 +6026,656 @@ class AddChemicalPage(Page):
         pygame.display.update()
 # Define Find Chemical Page
 class FindChemicalPage(Page):
-    def __init__(self) -> None:
-        super().__init__()
-        self.menu_rects = []
-        self.menu_texts = []
-        self.in_back = False
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
         self.manager = page_manager
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
     def render(self, pygame_screen):
-        pass
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Data Pre-Processing Page
 class DataPreProcessingPage(Page):
-    def __init__(self) -> None:
-        super().__init__()
-        self.menu_rects = []
-        self.menu_texts = []
-        self.in_back = False
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
         self.manager = page_manager
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
     def render(self, pygame_screen):
-        pass
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Quality check and Basic Cleaning Page
 class DataQualityCheckAndBasicCleaningPage(Page):
-    def __init__(self) -> None:
-        super().__init__()
-        self.menu_rects = []
-        self.menu_texts = []
-        self.in_back = False
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
         self.manager = page_manager
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
     def render(self, pygame_screen):
-        pass
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the temporal consistency Page
 class DataTemporalConsistencyPage(Page):
-    def __init__(self) -> None:
-        super().__init__()
-        self.menu_rects = []
-        self.menu_texts = []
-        self.in_back = False
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
         self.manager = page_manager
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
     def render(self, pygame_screen):
-        pass
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 
 # Define the Normalization and Standardization Page
 class DataNormalizationAndStandardizationPage(Page):
-    def __init__(self) -> None:
-        super().__init__()
-        self.menu_rects = []
-        self.menu_texts = []
-        self.in_back = False
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
         self.manager = page_manager
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
     def render(self, pygame_screen):
-        pass
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Dimensionality Reduction Page
 class DataDimensionalityReductionPage(Page):
-    def __init__(self) -> None:
-        super().__init__()
-        self.menu_rects = []
-        self.menu_texts = []
-        self.in_back = False
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
         self.manager = page_manager
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
     def render(self, pygame_screen):
-        pass
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Noise Reduction and Outlier Handling Page
 class DataNoiseReductionAndOutlierHandlingPage(Page):
-    def __init__(self) -> None:
-        super().__init__()
-        self.menu_rects = []
-        self.menu_texts = []
-        self.in_back = False
+    def __init__(self, page_manager=None):
+
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        
+        # Existing Buttons
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        
+        # New Buttons
+        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        
+        # Existing Button Texts
+        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        
+        # New Button Texts
+        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+
+        self.in_flowsheet_sim = False
+        self.in_equiptment_sizing = False
+        self.in_capital_cost = False
+        self.in_process_safety = False
+        self.in_physical_properties = False
+        self.in_quit = False
+        self.in_data_processing = False
+        self.in_statistics = False
+        self.in_thermodynamics = False
+
+
         self.manager = page_manager
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_flowsheet_sim = True
+                    elif i == 1:
+                        self.in_equiptment_sizing = True
+                    elif i == 2:
+                        self.in_capital_cost = True
+                    elif i == 3:
+                        self.in_process_safety = True
+                    elif i == 4:
+                        self.in_physical_properties = True
+                    elif i == 5:
+                        self.manager.running = False
+                        self.in_quit= True
+                    elif i == 6:  # Data Processing Button
+                        self.manager.go_to(DataProcessingPage())
+                    elif i == 7:  # Statistics Button
+                        self.manager.go_to(StatisticsPage())
+                    elif i == 8:  # Thermodynamics Button
+                        self.manager.go_to(ThermodynamicsPage())
+        if self.in_flowsheet_sim:
+            self.manager.go_to(FlowsheetSimulationPage())
+        elif self.in_equiptment_sizing:
+            self.manager.go_to(EquipmentSizingPage())
+        elif self.in_capital_cost:
+            self.manager.go_to(ProcessEconomicsPage())
+        elif self.in_process_safety:
+            self.manager.go_to(ProcessSafetyPage())
+        elif self.in_physical_properties:
+            self.manager.go_to(PhysicalPropertiesPage())
+        elif self.in_quit:
+            self.manager.running = False
+        
     def render(self, pygame_screen):
-        pass
-
-
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
 # Define the Flowsheet Renderer Class
 class FlowsheetRenderer:
     def __init__(self,flowsheet):
@@ -4922,7 +7627,6 @@ while page_manager.running:
     clock.tick(60)
 
 print("Thanks for using Franks Chemical Simulator")
-
 
 #you could encapsulate the state for each menu in a class or something
 #and the game loop can pick what class to render based on the state
