@@ -1,10 +1,123 @@
-import pygame
-import csv
-import pickle
-import math
-from enum import Enum
-import os
-import subprocess
+# This part is for checking whats missing
+try:
+    # At the top of your start.py script, after importing necessary modules
+    import psycopg2
+    import pygame
+    import csv
+    import pickle
+    import math
+    from enum import Enum
+    import os
+    import subprocess
+    import importlib
+    import chemicals
+    import fluids
+    import thermo
+    import ht
+    print("Import Success")
+except:
+    print("Import Error")
+    subprocess.run(["pip", "install", "-r", "requirements.txt"])
+
+current_directory = os.path.dirname(os.path.abspath(__file__))
+
+required_libraries = [
+    "subprocess",
+    "importlib",
+    "pygame",
+    "scipy",
+    "thermo",
+    "fluids",
+    "ht",
+    "numpy",
+    "csv",
+    "pickle",
+    "math",
+    "enum",
+    "os",
+    "sys",
+    "time",
+    "random",
+    "datetime",
+    "tkinter",
+    "fpdf",
+    "pandas",
+    "matplotlib",
+    "chemicals",
+    "openpyxl",
+    #"scikitlearn",
+    "pyswarms",
+    "pysindy",
+    "psycopg2"
+    # any other libraries you want to ensure are installed
+]
+
+missing_libraries = []
+
+for library in required_libraries:
+    try:
+        importlib.import_module(library)
+        print(f"{library} is installed.")
+    except ImportError:
+        print(f"{library} is not installed.")
+        missing_libraries.append(library)
+
+if missing_libraries:
+    print("Attempting to install missing libraries...")
+    subprocess.run(["pip", "install", *missing_libraries])
+    print("Installation of missing libraries completed.")
+
+
+# Function to get database connection
+def get_db_connection(config_file='chemical_databases/db_config.txt'):
+    try:
+        # Initialize a dictionary to hold the configuration
+        config = {}
+        
+        # Read configuration from file
+        with open(config_file, 'r') as file:
+            for line in file:
+                key, value = line.strip().split('=')
+                config[key] = value
+
+        # Establish the database connection
+        return psycopg2.connect(
+            dbname=config['dbname'],
+            user=config['user'],
+            password=config['password'],
+            host=config['host']
+        )
+
+    except Exception as e:
+        print("Error while connecting to the database:", e)
+        return None
+
+# Function to check and create the database if it doesn't exist
+def setup_database():
+    conn = get_db_connection()
+    if conn:
+        cursor = conn.cursor()
+        # Create tables if they don't exist (example for a chemical_data table)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS chemical_data (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100),
+                density FLOAT,
+                viscosity FLOAT,
+                ...
+            )
+        ''')
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("Database setup completed.")
+    else:
+        print("Database setup failed.")
+        print("Please try running setup_db.py")
+
+# Run the database setup function
+setup_database()
+
 flowsheet_version = "Flowsheet Simulator v.1.0.0"
 # Get the current directory
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -42,7 +155,7 @@ button_height = int(window_height * button_height_percent)
 
 # Define buttons
 button_padding = 50
-button_start_x = (WINDOW_SIZE[0] - button_width) / 2
+button_start_x = (WINDOW_SIZE[0] - button_width) / 4
 button_start_y = (WINDOW_SIZE[1] - (button_height + button_padding) * 5) / 2
 
 # Define the font size as a percentage of the window size
@@ -53,7 +166,6 @@ font_size = int(window_height * font_size_percent)
 
 # Create a font object
 font = pygame.font.SysFont(None, font_size)
-
 
 # Defines the abstract class called page
 class Page:
@@ -127,10 +239,13 @@ class MainMenuPage(Page):
                         self.manager.running = False
                         self.in_quit= True
                     elif i == 6:  # Data Processing Button
+                        self.in_data_processing = True
                         self.manager.go_to(DataProcessingPage())
                     elif i == 7:  # Statistics Button
+                        self.in_statistics = True
                         self.manager.go_to(StatisticsPage())
                     elif i == 8:  # Thermodynamics Button
+                        self.in_thermodynamics = True
                         self.manager.go_to(ThermodynamicsPage())
         if self.in_flowsheet_sim:
             self.manager.go_to(FlowsheetSimulationPage())
@@ -144,7 +259,8 @@ class MainMenuPage(Page):
             self.manager.go_to(PhysicalPropertiesPage())
         elif self.in_quit:
             self.manager.running = False
-        
+        elif self.in_thermodynamics:
+            self.manager.go_to(ThermodynamicsPage())
     def render(self, pygame_screen):
     # Draw the main menu
         screen.fill(WHITE)
@@ -179,26 +295,24 @@ class DataProcessingPage(Page):
         second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
         
         # Existing Buttons
-        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
+        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(5)]
         
         # New Buttons
-        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
+        #self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
         
         # Existing Button Texts
-        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
+        self.menu_texts = ["Matrix Interpolation Filler", "Remove Duplicates", "Temporal Resampling", "Subplotter", "Back"]
         
         # New Button Texts
-        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+        #self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
 
-        self.in_flowsheet_sim = False
-        self.in_equiptment_sizing = False
-        self.in_capital_cost = False
-        self.in_process_safety = False
-        self.in_physical_properties = False
-        self.in_quit = False
-        self.in_data_processing = False
-        self.in_statistics = False
-        self.in_thermodynamics = False
+        self.in_back = False
+        self.in_matrix_interpolation_filler = False
+        self.in_remove_duplicates = False
+        self.in_temporal_resampling = False
+        self.in_subplotter = False
+        self.in_back = False
+
 
 
         self.manager = page_manager
@@ -207,41 +321,40 @@ class DataProcessingPage(Page):
             for i, rect in enumerate(self.menu_rects):
                 if rect.collidepoint(event.pos):
                     if i == 0:
-                        self.in_flowsheet_sim = True
+                        self.in_matrix_interpolation_filler = True
                     elif i == 1:
-                        self.in_equiptment_sizing = True
+                        self.in_remove_duplicates = True
                     elif i == 2:
-                        self.in_capital_cost = True
+                        self.in_temporal_resampling = True
                     elif i == 3:
-                        self.in_process_safety = True
+                        self.in_subplotter = True
                     elif i == 4:
-                        self.in_physical_properties = True
-                    elif i == 5:
-                        self.manager.running = False
-                        self.in_quit= True
-                    elif i == 6:  # Data Processing Button
-                        self.manager.go_to(DataProcessingPage())
-                    elif i == 7:  # Statistics Button
-                        self.manager.go_to(StatisticsPage())
-                    elif i == 8:  # Thermodynamics Button
-                        self.manager.go_to(ThermodynamicsPage())
-        if self.in_flowsheet_sim:
-            self.manager.go_to(FlowsheetSimulationPage())
-        elif self.in_equiptment_sizing:
-            self.manager.go_to(EquipmentSizingPage())
-        elif self.in_capital_cost:
-            self.manager.go_to(ProcessEconomicsPage())
-        elif self.in_process_safety:
-            self.manager.go_to(ProcessSafetyPage())
-        elif self.in_physical_properties:
-            self.manager.go_to(PhysicalPropertiesPage())
-        elif self.in_quit:
-            self.manager.running = False
-        
+                        self.in_back = True
+                        self.manager.go_to(MainMenuPage())
+        if self.in_matrix_interpolation_filler:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Matrix_Filler_Interpolation.py")])
+            self.in_matrix_interpolation_filler = False
+        elif self.in_remove_duplicates:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Remove_Duplicates.py")])
+            self.in_remove_duplicates = False
+        elif self.in_temporal_resampling:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Temporal_Resampling.py")])
+            self.in_temporal_resampling = False
+        elif self.in_subplotter:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Subplotter.py")])
+            self.in_subplotter = False
+        elif self.in_back:
+            self.manager.go_to(MainMenuPage())
+    def exit(self):
+        # Terminate the subprocess if it exists before navigating away from this page
+        if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
+            self.subprocess_obj.terminate()
+  
+
     def render(self, pygame_screen):
     # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text = font.render("Data Pre Processing", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
         
@@ -272,7 +385,7 @@ class StatisticsPage(Page):
                             "Matrix Filler Interpolate",
                             "Moving Average Filter",
                             "Random Forest -> Particle Swarm Optimization",
-                            "Reduction PCA","Back"]
+                            "Reduction PCA","PIML","Back"]
         # Incremental Button Variables
         column_padding = 200  # Horizontal distance between columns
         second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
@@ -297,6 +410,7 @@ class StatisticsPage(Page):
         self.in_moving_average_filter = False
         self.in_random_forest = False
         self.in_reduction_pca = False
+        self.in_PIML = False
         self.in_back = False
 
 
@@ -324,6 +438,8 @@ class StatisticsPage(Page):
                     elif i == 8:
                         self.in_reduction_pca = True
                     elif i == 9:
+                        self.in_PIML = True
+                    elif i == 10:
                         self.in_back = True
 
         if self.in_spearman_pearson:
@@ -336,8 +452,100 @@ class StatisticsPage(Page):
             subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Check_Consistency.py")])
             self.in_check_consistency = False
         elif self.in_fft:
-            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_FFT.py")])
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_FFT_Technique.py")])
             self.in_fft = False
+        elif self.in_gaussian_filter:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Gaussian_Filter.py")])
+            self.in_gaussian_filter = False
+        elif self.in_matrix_filler_interpolate:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Matrix_Filler_Interpolation.py")])
+            self.in_matrix_filler_interpolate = False
+        elif self.in_moving_average_filter:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Moving_Average_Smoothing_Filter.py")])
+            self.in_moving_average_filter = False
+        elif self.in_random_forest:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Optimizer_RandomForest_ParticleSwarm.py")])
+            self.in_random_forest = False
+        elif self.in_reduction_pca:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_Reduction_PCA_SVD.py")])
+            self.in_reduction_pca = False
+        elif self.in_PIML:
+            self.manager.go_to(PIMLPage())
+        elif self.in_back:
+            self.manager.go_to(MainMenuPage())
+    def exit(self):
+        # Terminate the subprocess if it exists before navigating away from this page
+        if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
+            self.subprocess_obj.terminate()
+    def render(self, pygame_screen):
+    # Draw the main menu
+        screen.fill(WHITE)
+        text = font.render("Industrial Statistics", True, BLACK)
+        text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
+        screen.blit(text, text_rect)
+        
+        for i, rect in enumerate(self.menu_rects):
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
+            text = font.render(self.menu_texts[i], True, BLACK)
+            text_rect = text.get_rect(center=inflated_rect.center)
+            pygame_screen.blit(text, text_rect)
+# Define the Physics Informed Machine Learning Page
+class PIMLPage(Page):
+    def __init__(self, page_manager=None):
+        self.menu_texts = ["Genetic Programming","SINDY","Back"]
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        column_limit = 5  # Number of buttons per column
+        number_of_columns = -(-len(self.menu_texts) // column_limit)  # Ceiling division to get the number of columns needed
+        
+        self.menu_rects = [
+            pygame.Rect(
+                button_start_x + (button_width + column_padding) * (i // column_limit),  # X-coordinate: moves to the next column every 'column_limit' buttons
+                button_start_y + (button_height + button_padding) * (i % column_limit),  # Y-coordinate: cycles every 'column_limit' buttons
+                button_width,
+                button_height
+            )
+            for i in range(len(self.menu_texts))]
+        # Existing Button Texts
+        self.in_genetic_programming = False
+        self.in_SINDY = False
+        self.in_back = False
+
+
+        self.manager = page_manager
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_genetic_programming = True
+                    elif i == 1:
+                        self.in_SINDY = True
+                    elif i == 2:
+                        self.in_check_consistency = True
+                    elif i == 3:
+                        self.in_back = True
+
+        if self.in_genetic_programming:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_PIML_Genetic_Programming.py")])
+            self.in_genetic_programming = False
+        elif self.in_SINDY:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_PIML_SINDy.py")])
+            self.in_SINDY = False
         elif self.in_back:
             self.manager.go_to(StatisticsPage())
     def exit(self):
@@ -361,7 +569,7 @@ class StatisticsPage(Page):
     def render(self, pygame_screen):
     # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text = font.render("Physics Informed Machine Learning Statistics", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
         
@@ -387,31 +595,40 @@ class StatisticsPage(Page):
 class ThermodynamicsPage(Page):
     def __init__(self, page_manager=None):
 
+        self.menu_texts = ["Air Cooler Design","Ammonia Gas Storage",
+                            "Combustion","Compressor Power",
+                            "Ethylene Expansion","Isentropic Air Compression",
+                            "Isentropic Oxygen Compression","Joule-Thomson Methane",
+                            "Liquid Nitrogen","Material Properties",
+                            "Multi Component Flash","Back"]
         # Incremental Button Variables
         column_padding = 200  # Horizontal distance between columns
         second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        column_limit = 5  # Number of buttons per column
+        number_of_columns = -(-len(self.menu_texts) // column_limit)  # Ceiling division to get the number of columns needed
         
-        # Existing Buttons
-        self.menu_rects = [pygame.Rect(button_start_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(6)]
-        
-        # New Buttons
-        self.menu_rects += [pygame.Rect(second_column_x, button_start_y + (button_height + button_padding) * i, button_width, button_height) for i in range(3)]
-        
-        # Existing Button Texts
-        self.menu_texts = ["Flowsheet Simulation", "Equipment Sizing", "Process Economics", "Process Safety", "Physical Properties", "Quit"]
-        
-        # New Button Texts
-        self.menu_texts += ["Data Processing", "Statistics", "Thermodynamics"]
+        self.menu_rects = [
+            pygame.Rect(
+                button_start_x + (button_width + column_padding) * (i // column_limit),  # X-coordinate: moves to the next column every 'column_limit' buttons
+                button_start_y + (button_height + button_padding) * (i % column_limit),  # Y-coordinate: cycles every 'column_limit' buttons
+                button_width,
+                button_height
+            )
+            for i in range(len(self.menu_texts))]
 
-        self.in_flowsheet_sim = False
-        self.in_equiptment_sizing = False
-        self.in_capital_cost = False
-        self.in_process_safety = False
-        self.in_physical_properties = False
-        self.in_quit = False
-        self.in_data_processing = False
-        self.in_statistics = False
-        self.in_thermodynamics = False
+        self.in_air_cooler_design = False
+        self.in_ammonia_gas_storage = False
+        self.in_combustion = False
+        self.in_compressor_power = False
+        self.in_ethylene_expansion = False
+        self.in_isentropic_air_compression = False
+        self.in_isentropic_oxygen_compression = False
+        self.in_joule_thomson_methane = False
+        self.in_liquid_nitrogen = False
+        self.in_material_properties = False
+        self.in_multi_component_flash = False
+        self.in_back = False
+        self.in_thermodynamics_page = False
 
 
         self.manager = page_manager
@@ -420,41 +637,74 @@ class ThermodynamicsPage(Page):
             for i, rect in enumerate(self.menu_rects):
                 if rect.collidepoint(event.pos):
                     if i == 0:
-                        self.in_flowsheet_sim = True
+                        self.in_air_cooler_design = True
                     elif i == 1:
-                        self.in_equiptment_sizing = True
+                        self.in_ammonia_gas_storage = True
                     elif i == 2:
-                        self.in_capital_cost = True
+                        self.in_combustion = True
                     elif i == 3:
-                        self.in_process_safety = True
+                        self.in_compressor_power = True
                     elif i == 4:
-                        self.in_physical_properties = True
+                        self.in_ethylene_expansion = True
                     elif i == 5:
-                        self.manager.running = False
-                        self.in_quit= True
-                    elif i == 6:  # Data Processing Button
-                        self.manager.go_to(DataProcessingPage())
-                    elif i == 7:  # Statistics Button
-                        self.manager.go_to(StatisticsPage())
-                    elif i == 8:  # Thermodynamics Button
-                        self.manager.go_to(ThermodynamicsPage())
-        if self.in_flowsheet_sim:
-            self.manager.go_to(FlowsheetSimulationPage())
-        elif self.in_equiptment_sizing:
-            self.manager.go_to(EquipmentSizingPage())
-        elif self.in_capital_cost:
-            self.manager.go_to(ProcessEconomicsPage())
-        elif self.in_process_safety:
-            self.manager.go_to(ProcessSafetyPage())
-        elif self.in_physical_properties:
-            self.manager.go_to(PhysicalPropertiesPage())
-        elif self.in_quit:
-            self.manager.running = False
-        
+                        self.in_isentropic_air_compression = True
+                    elif i == 6:
+                        self.in_isentropic_oxygen_compression = True
+                    elif i == 7:
+                        self.in_joule_thomson_methane = True
+                    elif i == 8:
+                        self.in_liquid_nitrogen = True
+                    elif i == 9:
+                        self.in_material_properties = True
+                    elif i == 10:
+                        self.in_multi_component_flash = True
+                    elif i == 11:
+                        self.in_back = True
+                    
+        if self.in_air_cooler_design:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Air_Cooler_Designer.py")])
+            self.in_air_cooler_design = False
+        elif self.in_ammonia_gas_storage:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Ammonia_Gas_Storage_Sizing.py")])
+            self.in_ammonia_gas_storage = False
+        elif self.in_combustion:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Combustion_Calculations.py")])
+            self.in_combustion = False
+        elif self.in_compressor_power:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Compressor_Power_Sizing.py")])
+            self.in_compressor_power = False
+        elif self.in_ethylene_expansion:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Ethylene_Expansion.py")])
+            self.in_ethylene_expansion = False
+        elif self.in_isentropic_air_compression:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Isentropic_Air_Compression.py")])
+            self.in_isentropic_air_compression = False
+        elif self.in_isentropic_oxygen_compression:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Isentropic_Oxygen_Compression.py")])
+            self.in_isentropic_oxygen_compression = False
+        elif self.in_joule_thomson_methane:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Joule_Thomson_Methane.py")])
+            self.in_joule_thomson_methane = False
+        elif self.in_liquid_nitrogen:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Liquid_Nitrogen_Production.py")])
+            self.in_liquid_nitrogen = False
+        elif self.in_material_properties:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Material_Properties.py")])
+            self.in_material_properties = False
+        elif self.in_multi_component_flash:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Thermodynamics_Multi_Component_Flash.py")])
+            self.in_multi_component_flash = False
+        elif self.in_back:
+            self.manager.go_to(MainMenuPage())
+            self.in_back = False
+    def exit(self):
+        # Terminate the subprocess if it exists before navigating away from this page
+        if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
+            self.subprocess_obj.terminate()        
     def render(self, pygame_screen):
     # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text = font.render("Thermodynamics Page", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
         
@@ -989,14 +1239,15 @@ class LoadFlowsheetPage(Page):
 # Define Equiptment Sizing Page
 class EquipmentSizingPage(Page):
     def __init__(self,page_manager = None):
+        start_x = button_start_x
         self.menu_rects = [
-        pygame.Rect(button_start_x/2-button_width/2, button_start_y, button_width, button_height),
-        pygame.Rect(button_start_x/2-button_width/2, button_start_y + button_height + button_padding, button_width, button_height),
-        pygame.Rect(button_start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 2, button_width, button_height),
-        pygame.Rect(button_start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 3, button_width, button_height),
-        pygame.Rect(button_start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 4, button_width, button_height),
-        pygame.Rect(button_start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 5, button_width, button_height),
-        pygame.Rect(button_start_x, button_start_y, button_width, button_height)
+        pygame.Rect(start_x/2-button_width/2, button_start_y, button_width, button_height),
+        pygame.Rect(start_x/2-button_width/2, button_start_y + button_height + button_padding, button_width, button_height),
+        pygame.Rect(start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 2, button_width, button_height),
+        pygame.Rect(start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 3, button_width, button_height),
+        pygame.Rect(start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 4, button_width, button_height),
+        pygame.Rect(start_x/2-button_width/2, button_start_y + (button_height + button_padding) * 5, button_width, button_height),
+        pygame.Rect(start_x, button_start_y, button_width, button_height)
     ]
         self.menu_texts = [
         "Heat Exchangers",
@@ -1422,10 +1673,57 @@ class GenericVerticalVesselPage(Page):
             pygame_screen.blit(text, text_rect)
 # Define the Boiler Pressure Vessels Page
 class BoilerVesselPage(Page):
+    def __init__(self, page_manager=None):
+        self.menu_texts = ["Fire Tube Boiler","Recovery Boilers","Fluidized Bed Boiler","Back"]
+        # Incremental Button Variables
+        column_padding = 200  # Horizontal distance between columns
+        second_column_x = button_start_x + button_width + column_padding  # X-coordinate of the second column
+        column_limit = 5  # Number of buttons per column
+        number_of_columns = -(-len(self.menu_texts) // column_limit)  # Ceiling division to get the number of columns needed
+        
+        self.menu_rects = [
+            pygame.Rect(
+                button_start_x + (button_width + column_padding) * (i // column_limit),  # X-coordinate: moves to the next column every 'column_limit' buttons
+                button_start_y + (button_height + button_padding) * (i % column_limit),  # Y-coordinate: cycles every 'column_limit' buttons
+                button_width,
+                button_height
+            )
+            for i in range(len(self.menu_texts))]
+        # Existing Button Texts
+        self.in_fire_tubes = False
+        self.in_recovery_boilers = False
+        self.in_fluidized_bed_boiler = False
+        self.in_back = False
+        self.manager = page_manager
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for i, rect in enumerate(self.menu_rects):
+                if rect.collidepoint(event.pos):
+                    if i == 0:
+                        self.in_fire_tubes = True
+                    elif i == 1:
+                        self.in_recovery_boilers = True
+                    elif i == 2:
+                        self.in_back = True
+
+        if self.in_fire_tubes:
+            self.manager.go_to(FireTubeBoilerPage())
+            self.in_fire_tubes = False
+        elif self.in_recovery_boilers:
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Data_ANOVA.py")])
+            self.in_anova = False
+        elif self.in_back:    
+            self.manager.go_to(VesselsPage())
+            self.in_back = False
+    def exit(self):
+        # Terminate the subprocess if it exists before navigating away from this page
+        if self.subprocess_obj is not None and self.subprocess_obj.poll() is None:
+            self.subprocess_obj.terminate()
     def render(self, pygame_screen):
     # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Power Boilers", True, BLACK)
+        text = font.render("Industrial Statistics", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
         
@@ -2510,13 +2808,27 @@ class HeatExchangerPage(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Type of Heat Exchanger", True, BLACK)
+        text = font.render("Types of Heat Exchanger", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Shell and Tube Hex Page
 class ShellTubeHexPage(Page):
@@ -2558,7 +2870,7 @@ class ShellTubeHexPage(Page):
     def render(self, pygame_screen):
     # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Shell and Tube Heat Exchanger Design and Sizing", True, BLACK)
+        text = font.render("Shell and Tube Heat Exchanger Design an Sizing", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
         
@@ -3331,10 +3643,24 @@ class ReactorsPage(Page):
         text = font.render("Reactor Selection", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Controls Page
 class ControlsPage(Page):
@@ -3388,13 +3714,27 @@ class ControlsPage(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Types of Controls", True, BLACK)
+        text = font.render("Controls Page", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Valves Page
 class ValvesPage(Page):
@@ -5119,10 +5459,24 @@ class ProcessEconomicsPage(Page):
         text = font.render("Process Economics", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define The Estimate 
 class OptimalPipeDiameterPage(Page):
@@ -5396,13 +5750,27 @@ class ProcessSafetyPage(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Estimate Flowsheet Safety", True, BLACK)
+        text = font.render("Process Safety", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Flowsheet Safety Estimation Page
 class EstimateFlowsheetSafetyPage(Page):
@@ -5526,7 +5894,7 @@ class FindChemicalSafetyPage(Page):
                     elif i == 1:
                         self.in_back = True
         if self.in_start_industrial_hygeine_finder:
-            subprocess.run(["python3", os.path.join(current_directory,"apps/Chemical_Safety.py")])
+            subprocess.run(["python3", os.path.join(current_directory,"apps/Safety_Chemical_Safety.py")])
             self.in_start_industrial_hygeine_finder = False
         elif self.in_back:
             self.manager.go_to(ProcessSafetyPage())
@@ -5540,10 +5908,24 @@ class FindChemicalSafetyPage(Page):
         text = font.render("TWA STEL Data", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define Safety Instrument Page
 class SafetyInstrumentationPage(Page):
@@ -5821,13 +6203,27 @@ class PhysicalPropertiesPage(Page):
     def render(self, pygame_screen):
         # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Equipment Sizing", True, BLACK)
+        text = font.render("Physical Properties of Chemicals", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
+        
         for i, rect in enumerate(self.menu_rects):
-            pygame.draw.rect(pygame_screen, BLACK, rect, 2)
+            # Inflate the rect to make it slightly bigger than the text
+            inflated_rect = rect.inflate(20, 10)  # Increase the width by 20 and height by 10
+            
+            # Draw a light grey rectangle for a 3D effect (raised button appearance)
+            pygame.draw.rect(pygame_screen, (200, 200, 200), inflated_rect)  # Light grey
+            
+            # Draw dark grey lines at the bottom and right for a 3D effect
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomleft, inflated_rect.bottomright)  # Dark grey
+            pygame.draw.line(pygame_screen, (100, 100, 100), inflated_rect.bottomright, inflated_rect.topright)  # Dark grey
+            
+            # Draw the main button rectangle
+            pygame.draw.rect(pygame_screen, BLACK, inflated_rect, 2)
+            
+            # Render the text in the center of the inflated rectangle
             text = font.render(self.menu_texts[i], True, BLACK)
-            text_rect = text.get_rect(center=rect.center)
+            text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
 # Define a basic button class
 class Button:
@@ -6393,7 +6789,7 @@ class DataTemporalConsistencyPage(Page):
     def render(self, pygame_screen):
     # Draw the main menu
         screen.fill(WHITE)
-        text = font.render("Welcome to Frank's Chemical Process Simulator", True, BLACK)
+        text = font.render("Temporal Data", True, BLACK)
         text_rect = text.get_rect(center=(WINDOW_SIZE[0] / 2, button_start_y / 2))
         screen.blit(text, text_rect)
         
@@ -6415,7 +6811,6 @@ class DataTemporalConsistencyPage(Page):
             text = font.render(self.menu_texts[i], True, BLACK)
             text_rect = text.get_rect(center=inflated_rect.center)
             pygame_screen.blit(text, text_rect)
-
 # Define the Normalization and Standardization Page
 class DataNormalizationAndStandardizationPage(Page):
     def __init__(self, page_manager=None):
@@ -7646,11 +8041,3 @@ while page_manager.running:
     clock.tick(60)
 
 print("Thanks for using Franks Chemical Simulator")
-
-#you could encapsulate the state for each menu in a class or something
-#and the game loop can pick what class to render based on the state
-
-#pickle could be sav cuz u can make a class or something that holds 
-#the entire state and then u can serialize the python class with pickle
-
-#u should add some loggin' when u do calls that try and load files
